@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# TypeScript build output (tsconfig outDir)
+dist/
+*.tsbuildinfo
+
+# Logs & debug
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# C++ prototype build artifacts (prototypes/)
+prototypes/gsearch
+prototypes/solver
+prototypes/solver_mt
+prototypes/grandsire
+prototypes/touches
+*.out
+*.o
+*.obj
+*.exe
+*.dSYM/
+
+# Rust / WASM engine build output (ADR-0001)
+target/
+pkg/
+*.wasm
+wasm-pack.log
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS cruft
+.DS_Store
+Thumbs.db
