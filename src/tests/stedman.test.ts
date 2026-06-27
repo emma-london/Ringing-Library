@@ -22,20 +22,26 @@ import { Method, PlaceNotation, Change } from '../index.js';
  */
 
 // Ground truth — rows verified against complib and the library itself.
+//
+// This 12-change block (rounds → 6347251) is one double-six "lead". Because
+// Stedman starts from rounds in the MIDDLE of a six, the block boundaries
+// (rows 0 and 12) are NOT six-ends. The true six-ends — where calls are made —
+// fall at rows 2 and 8, immediately before each '7' (the '7' begins a six).
+// A six is named by its frontwork: slow = 3.1.3.1.3, quick = 1.3.1.3.1.
 const STEDMAN_FIRST_LEAD: string[] = [
-  '1234567', // 0  start (rounds)
-  '2135476', // 1  after 3  ─┐
-  '2314567', // 2  after 1   │ slow six
-  '3241657', // 3  after 7   │
+  '1234567', // 0  start (rounds) — 4 changes into a quick six
+  '2135476', // 1  after 3
+  '2314567', // 2  after 1   ← six-end
+  '3241657', // 3  after 7  ─┐
   '2346175', // 4  after 3   │
-  '2431657', // 5  after 1   │
-  '4236175', // 6  after 3  ─┘  ← six-head
-  '4321657', // 7  after 1  ─┐
-  '3426175', // 8  after 3   │ quick six
-  '4362715', // 9  after 7   │
-  '4637251', // 10 after 1   │
-  '6432715', // 11 after 3   │
-  '6347251', // 12 after 1  ─┘  ← lead head
+  '2431657', // 5  after 1   │ slow six (frontwork 3.1.3.1.3)
+  '4236175', // 6  after 3   │
+  '4321657', // 7  after 1   │
+  '3426175', // 8  after 3   ← six-end (end of slow six)
+  '4362715', // 9  after 7  ─┐
+  '4637251', // 10 after 1   │ quick six (1.3.1.3.1) — runs past the
+  '6432715', // 11 after 3   │ lead head into the next lead
+  '6347251', // 12 after 1   ── double-six lead head (NOT a six-end)
 ];
 
 const STEDMAN_LEAD_HEADS: string[] = [
@@ -108,7 +114,7 @@ describe('Method — Stedman Triples', () => {
     expect(rows).toEqual(STEDMAN_FIRST_LEAD);
   });
 
-  it('six-head (row 6) is correct', () => {
+  it('row 6 of the first lead (mid slow six) is 4236175', () => {
     const rows = [...st.leadRows()];
     expect(rows[6]!.toString()).toBe('4236175');
   });

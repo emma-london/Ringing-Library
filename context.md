@@ -121,6 +121,14 @@ The cross-platform direction is recorded as ADRs in `docs/adr/` (see `docs/adr/R
 
 **App phase (open, [ADR-0004](docs/adr/ADR-0004-application-surface-and-agentic-use-cases.md) Draft).** Platform/app surface and the deterministic-vs-agentic intent split — still being thought through; downstream of the core and engine.
 
+### Backlog (scheduled, not yet started)
+
+Captured from code review; each is unblocked and can be picked up independently.
+
+- **Declarative truth-fixture corpus** — centralise the scattered, code-implemented known-true/false test oracles into one human-readable data file with per-family adapters. Design in **[ADR-0008](docs/adr/ADR-0008-truth-fixture-corpus.md)** *(Draft)*.
+- **Generic method & call construction** — replace per-method call factories (`grandsireCalls`/`plainBobCalls`/`stedmanTriplesCalls`) with a generic lead-end call path for the common 95%+, plus a special-case registry for Grandsire/Stedman; best done with the full-library loader. Design in **[ADR-0009](docs/adr/ADR-0009-generic-method-and-call-construction.md)** *(Draft)*.
+- **Bell names beyond Maximus** — `src/bell.ts` `BELL_NAMES` stops at 12 (`1234567890ET`). Extend to the standard higher-stage symbols (sixteen, eighteen, twenty…) and add tests. Small, concrete; no ADR needed — confirm the exact symbol convention (e.g. `A B C D …`) against CCCBR when implementing.
+
 ---
 
 ## Research spike — brute-force composition search (C++)
