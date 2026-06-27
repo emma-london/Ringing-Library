@@ -18,6 +18,7 @@ The cross-platform direction is recorded as ADRs in `docs/adr/` (see `docs/adr/R
 - **[ADR-0004](docs/adr/ADR-0004-application-surface-and-agentic-use-cases.md)** *(Draft)* — application surface and the deterministic/cached vs conversational/agentic split. An open thinking record for the app phase; does not constrain Phase 3.
 - **[ADR-0005](docs/adr/ADR-0005-composition-identity-and-proof-result.md)** *(Accepted)* — resolves ADR-0002's two open items. **`Composition` is the bare calling** (method ref, start, calls, length); its content hash is its identity and it carries **no metadata** — composer/title/music score live in the corpus, keyed by hash. **`Prover` returns an immutable `Proof` value** (`isTrue` + `falseRows` with line numbers), the serializable truth fact the cache/corpus stores.
 - **[ADR-0006](docs/adr/ADR-0006-call-model-and-come-round.md)** *(Accepted)* — the Phase 3 call/come-round decisions. A **call replaces the tail run of a lead** (Grandsire bob `3.1` / single `3.123`; Plain Bob bob `14` / single `1234`). **Callings are one char per lead** (`.` plain, symbol-matched calls, case-insensitive). **Come-round is checked at every row** so Grandsire **snap finishes** fall out for free; a return only counts as a finish if it lands in the last specified lead, otherwise it is premature and caught as falseness.
+- **[ADR-0007](docs/adr/ADR-0007-stedman-and-six-based-calling.md)** *(Accepted)* — Stedman, principles, and six-based calling. **Stedman Triples** is a 12-change **double-six principle** (`3.1.7.3.1.3,1`, lead head `6347251`, plain course 7 leads / 84 changes). Its **calls fall at six-ends** (changes 2 & 8 — the `7` begins each six; bob `5`, single `567`). Phase 3 adopts **Option B**: the eight compound double-six callings (`PB…SS`) encoded as calls *inside* ADR-0006, built from a natural **per-six** string via `stedmanTriplesCalls()` / `stedmanTriplesComposition()`. Verified true against published touches (SLQ = 84, single×2 = 168, bobs = 252; doubled-SLQ correctly false). Full sub-lead calling (**Option A**) is deferred as a future ADR-0006 successor.
 
 > ADR-0001 and ADR-0002 are **Accepted**. ADR-0003's phasing revises ADR-0001's *Now* action sequencing (execution plumbing deferred to Phase 4); ADR-0005 resolves ADR-0002's open type questions.
 
@@ -75,8 +76,9 @@ The cross-platform direction is recorded as ADRs in `docs/adr/` (see `docs/adr/R
 | `src/composition.ts` | `Composition` + `CompositionBuilder`, `CallDefinition`/`CallingEntry`, `fromCalling`, `key()`/`hash()` (FNV-1a), `toJSON`/`fromJSON` — Phase 3 |
 | `src/touch.ts` | `Touch` — lead expansion with call substitution, come-round/snap detection, `prove()` — Phase 3 |
 | `src/method-library.ts` | `MethodLibrary` — find/byStage/byClass/method()/iterator — Phase 3 |
-| `src/data/standard-methods.ts` | Curated real CCCBR method data + `grandsireCalls`/`plainBobCalls` factories — Phase 3 |
+| `src/data/standard-methods.ts` | Curated real CCCBR method data (incl. **Stedman Triples**, a principle — ADR-0007) + `grandsireCalls`/`plainBobCalls`/`stedmanTriplesCalls` factories and `stedmanTriplesComposition` (per-six calling) — Phase 3 |
 | `src/index.ts` | Barrel export |
+| `ringing-test-bench.html` | Self-contained browser test app (library bundled in via esbuild): Compose & Prove, Method Explorer (plain course / blue line), Row & Change playground. A scratch harness for exercising the core by hand |
 | `src/tests/bell.test.ts` | 13 tests |
 | `src/tests/row.test.ts` | 34 tests |
 | `src/tests/change.test.ts` | 24 tests |
@@ -88,10 +90,11 @@ The cross-platform direction is recorded as ADRs in `docs/adr/` (see `docs/adr/R
 | `src/tests/touch.test.ts` | 17 tests — Phase 3 |
 | `src/tests/method-library.test.ts` | 7 tests — Phase 3 |
 | `src/tests/example-touches.test.ts` | 6 tests — the `docs/example-touches.md` oracle — Phase 3 |
+| `src/tests/stedman-calls.test.ts` | 10 tests — Stedman six-end calls vs published touches (ADR-0007) |
 | `playground.ts` | Phase 1 self-contained TS Playground file |
 | `playground-phase2.ts` | Phase 2 self-contained TS Playground file |
 
-**182 tests, all passing.** Clean `tsc` build.
+**192 tests, all passing.** Clean `tsc` build.
 
 ### Implementation notes
 

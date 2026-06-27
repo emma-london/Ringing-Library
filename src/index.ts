@@ -14,4 +14,6 @@ export {
   STANDARD_METHODS,
   grandsireCalls,
   plainBobCalls,
+  stedmanTriplesCalls,
+  stedmanTriplesComposition,
 } from './data/standard-methods.js';

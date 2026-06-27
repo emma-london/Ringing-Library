@@ -1,0 +1,1791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ringing Library — Test Bench</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1e222b;
+    --line: #2a2f3a;
+    --text: #e6e9ef;
+    --muted: #9aa3b2;
+    --accent: #5b8cff;
+    --accent-2: #7c5cff;
+    --good: #3ecf8e;
+    --good-bg: #123a2b;
+    --bad: #ff6b6b;
+    --bad-bg: #3a1414;
+    --snap: #ffcc66;
+    --bell: #232936;
+    --hl: #5b8cff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 650; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  .tabs { display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+  .tab {
+    padding: 11px 16px; cursor: pointer; color: var(--muted);
+    border-bottom: 2px solid transparent; user-select: none; font-weight: 550;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  main { padding: 22px 24px; max-width: 1100px; }
+  .view { display: none; }
+  .view.active { display: block; }
+  .row-controls { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 18px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .02em; }
+  select, input[type=text], input[type=number] {
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 7px; padding: 8px 10px; font: inherit; min-width: 120px;
+  }
+  input[type=text].mono, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  button {
+    background: var(--accent); color: #fff; border: 0; border-radius: 7px;
+    padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer;
+  }
+  button:hover { filter: brightness(1.08); }
+  button.ghost { background: var(--panel-2); border: 1px solid var(--line); color: var(--text); }
+  button.small { padding: 5px 10px; font-size: 12px; }
+  .hint { color: var(--muted); font-size: 12.5px; margin: -6px 0 14px; }
+  .badges { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 16px; }
+  .badge {
+    padding: 6px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+    background: var(--panel-2); border: 1px solid var(--line);
+  }
+  .badge b { font-weight: 700; }
+  .badge.good { background: var(--good-bg); border-color: #1f6b4d; color: var(--good); }
+  .badge.bad { background: var(--bad-bg); border-color: #7a2a2a; color: var(--bad); }
+  .badge.snap { background: #3a3214; border-color: #6b5a1f; color: var(--snap); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 18px; }
+  .panel h3 { margin: 0 0 12px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  /* rows grid */
+  /* Multi-column so rows read top-to-bottom down each column, then across. */
+  .rows { column-width: 190px; column-gap: 18px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .rowline {
+    display: flex; align-items: center; gap: 1px; padding: 1px 6px; border-radius: 5px;
+    background: var(--panel-2); position: relative;
+    margin-bottom: 4px; break-inside: avoid; -webkit-column-break-inside: avoid;
+  }
+  .rowline .idx { color: var(--muted); font-size: 11px; width: 34px; text-align: right; margin-right: 6px; }
+  .rowline.false { background: var(--bad-bg); outline: 1px solid #7a2a2a; }
+  .rowline.lead { box-shadow: inset 2px 0 0 var(--accent-2); }
+  .rowline.start { box-shadow: inset 2px 0 0 var(--good); }
+  .bell { display: inline-block; width: 15px; text-align: center; color: var(--text); }
+  .bell.hl { color: var(--bg); background: var(--hl); border-radius: 3px; font-weight: 700; }
+  .bell.hl2 { color: var(--bg); background: var(--snap); border-radius: 3px; font-weight: 700; }
+  .methlist { display: flex; flex-direction: column; gap: 4px; }
+  .methitem {
+    padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer;
+    background: var(--panel-2); display: flex; justify-content: space-between; gap: 10px;
+  }
+  .methitem:hover { border-color: var(--accent); }
+  .methitem.active { border-color: var(--accent); background: #1b2740; }
+  .methitem .nm { font-weight: 600; }
+  .methitem .meta { color: var(--muted); font-size: 12px; }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; align-items: center; }
+  .kv .k { color: var(--muted); font-size: 12.5px; }
+  .kv .v { font-family: ui-monospace, Menlo, monospace; word-break: break-all; }
+  .two-col { display: grid; grid-template-columns: 260px 1fr; gap: 18px; }
+  .err { color: var(--bad); font-size: 13px; margin-top: 8px; white-space: pre-wrap; }
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  code.inl { background: var(--panel-2); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; }
+  @media (max-width: 720px){ .two-col{ grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>🔔 Ringing Library — Test Bench</h1>
+  <span class="sub">A scratch UI over the Phase&nbsp;3 core: compose &amp; prove touches, explore methods, play with row algebra.</span>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-view="compose">Compose &amp; Prove</div>
+  <div class="tab" data-view="explore">Method Explorer</div>
+  <div class="tab" data-view="play">Row &amp; Change Playground</div>
+</div>
+
+<main>
+  <!-- ============ COMPOSE & PROVE ============ -->
+  <section class="view active" id="view-compose">
+    <div class="row-controls">
+      <div class="field">
+        <label>Method</label>
+        <select id="c-method"></select>
+      </div>
+      <div class="field" style="flex:1; min-width:220px">
+        <label id="c-label">Calling — one char per lead (length = number of characters)</label>
+        <input type="text" class="mono" id="c-calling" value="....." />
+      </div>
+      <button id="c-run">Ring &amp; Prove</button>
+    </div>
+    <div class="hint" id="c-callhint"></div>
+
+    <div class="toolbar">
+      <span class="badge ghost">Presets:</span>
+      <span id="c-presets"></span>
+      <span style="flex:1"></span>
+      <label class="field" style="flex-direction:row; align-items:center; gap:6px">
+        <span style="color:var(--muted); font-size:12px">Highlight bell</span>
+        <select id="c-hl" style="min-width:70px"></select>
+      </label>
+    </div>
+
+    <div id="c-error" class="err"></div>
+    <div id="c-badges" class="badges"></div>
+
+    <div class="panel" id="c-idpanel" style="display:none">
+      <h3>Composition identity (serialization)</h3>
+      <div class="kv">
+        <div class="k">key()</div><div class="v" id="c-key"></div>
+        <div class="k">hash()</div><div class="v" id="c-hash"></div>
+        <div class="k">toJSON()</div><div class="v mono" id="c-json" style="font-size:12px"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="c-rowspanel" style="display:none">
+      <h3>Rows <span id="c-rowcount" style="text-transform:none; color:var(--muted)"></span></h3>
+      <div class="rows" id="c-rows"></div>
+    </div>
+  </section>
+
+  <!-- ============ METHOD EXPLORER ============ -->
+  <section class="view" id="view-explore">
+    <div class="two-col">
+      <div>
+        <h3 style="color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.05em">Library</h3>
+        <div class="methlist" id="e-list"></div>
+      </div>
+      <div>
+        <div class="panel" id="e-info" style="display:none">
+          <h3>Method</h3>
+          <div class="kv" id="e-kv"></div>
+        </div>
+        <div class="toolbar" id="e-toolbar" style="display:none">
+          <label class="field" style="flex-direction:row; align-items:center; gap:6px">
+            <span style="color:var(--muted); font-size:12px">Trace bell (blue line)</span>
+            <select id="e-hl" style="min-width:70px"></select>
+          </label>
+          <label class="field" style="flex-direction:row; align-items:center; gap:6px">
+            <span style="color:var(--muted); font-size:12px">Also trace</span>
+            <select id="e-hl2" style="min-width:70px"></select>
+          </label>
+          <span class="badge" id="e-coursebadge"></span>
+        </div>
+        <div class="panel" id="e-rowspanel" style="display:none">
+          <h3>Plain course</h3>
+          <div class="rows" id="e-rows"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ROW & CHANGE PLAYGROUND ============ -->
+  <section class="view" id="view-play">
+    <div class="panel">
+      <h3>Apply a change to a row</h3>
+      <div class="row-controls" style="margin-bottom:6px">
+        <div class="field">
+          <label>Stage</label>
+          <select id="p-stage"></select>
+        </div>
+        <div class="field">
+          <label>Start row</label>
+          <input type="text" class="mono" id="p-row" value="12345678" style="width:160px" />
+        </div>
+        <div class="field" style="flex:1; min-width:200px">
+          <label>Place-notation changes (e.g. <code class="inl">x.18.x.18</code> or <code class="inl">-1-1</code>)</label>
+          <input type="text" class="mono" id="p-pn" value="x.18.x.18.x.18.x.18" />
+        </div>
+        <button id="p-apply">Apply</button>
+      </div>
+      <div class="hint">Each change is applied in turn from the start row. <code class="inl">x</code>/<code class="inl">-</code> = cross, digits = places made.</div>
+      <div id="p-error" class="err"></div>
+      <div class="rows" id="p-rows" style="margin-top:8px"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Row algebra</h3>
+      <div class="row-controls" style="margin-bottom:6px">
+        <div class="field"><label>Row A</label><input type="text" class="mono" id="p-a" value="13524" style="width:140px" /></div>
+        <div class="field"><label>Row B</label><input type="text" class="mono" id="p-b" value="21345" style="width:140px" /></div>
+        <button id="p-calc" class="ghost">Compute</button>
+      </div>
+      <div class="hint">Compose, invert, and parity for permutations. Both rows must be the same stage.</div>
+      <div id="p-algerror" class="err"></div>
+      <div class="kv" id="p-alg" style="margin-top:6px"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+var RingingLib = (() => {
+  var __defProp = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, { get: all[name], enumerable: true });
+  };
+  var __copyProps = (to, from, except, desc) => {
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (let key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key) && key !== except)
+          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+    }
+    return to;
+  };
+  var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+
+  // src/index.ts
+  var src_exports = {};
+  __export(src_exports, {
+    BELL_NAMES: () => BELL_NAMES,
+    Change: () => Change,
+    Composition: () => Composition,
+    CompositionBuilder: () => CompositionBuilder,
+    Method: () => Method,
+    MethodLibrary: () => MethodLibrary,
+    PlaceNotation: () => PlaceNotation,
+    Proof: () => Proof,
+    Prover: () => Prover,
+    Row: () => Row,
+    STANDARD_METHODS: () => STANDARD_METHODS,
+    Stage: () => Stage,
+    Touch: () => Touch,
+    bellFromChar: () => bellFromChar,
+    bellToChar: () => bellToChar,
+    grandsireCalls: () => grandsireCalls,
+    plainBobCalls: () => plainBobCalls,
+    stedmanTriplesCalls: () => stedmanTriplesCalls,
+    stedmanTriplesComposition: () => stedmanTriplesComposition
+  });
+
+  // src/bell.ts
+  var Stage = {
+    SINGLES: 3,
+    MINIMUS: 4,
+    DOUBLES: 5,
+    MINOR: 6,
+    TRIPLES: 7,
+    MAJOR: 8,
+    CATERS: 9,
+    ROYAL: 10,
+    CINQUES: 11,
+    MAXIMUS: 12
+  };
+  var BELL_NAMES = "1234567890ET";
+  function bellToChar(b) {
+    const c = BELL_NAMES[b];
+    if (c === void 0) {
+      throw new RangeError(`Bell index ${b} out of range (max ${BELL_NAMES.length - 1})`);
+    }
+    return c;
+  }
+  function bellFromChar(c) {
+    const i = BELL_NAMES.indexOf(c);
+    if (i === -1) {
+      throw new Error(`Unrecognised bell character: '${c}'`);
+    }
+    return i;
+  }
+
+  // src/row.ts
+  var Row = class _Row {
+    // ---------------------------------------------------------------------------
+    // Construction
+    // ---------------------------------------------------------------------------
+    constructor(bells) {
+      __publicField(this, "stage");
+      __publicField(this, "_bells");
+      const stage = bells.length;
+      if (stage === 0) throw new Error("Row must have at least one bell");
+      const seen = new Uint8Array(stage);
+      for (const b of bells) {
+        if (b < 0 || b >= stage || !Number.isInteger(b)) {
+          throw new RangeError(`Bell ${b} is out of range for stage ${stage}`);
+        }
+        if ((seen[b] ?? 0) > 0) {
+          throw new Error(`Bell ${b} appears more than once`);
+        }
+        seen[b] = 1;
+      }
+      this.stage = stage;
+      this._bells = Object.freeze([...bells]);
+    }
+    /** Parse from a string like '214365' or '13572468'. */
+    static parse(s) {
+      if (s.length === 0) throw new Error("Cannot parse empty string as Row");
+      const bells = [...s].map((c) => {
+        const i = BELL_NAMES.indexOf(c);
+        if (i === -1) throw new Error(`Unrecognised bell character: '${c}'`);
+        return i;
+      });
+      return new _Row(bells);
+    }
+    /** Return the rounds row for a given stage: 0, 1, 2, …, stage-1 */
+    static rounds(stage) {
+      if (stage <= 0 || !Number.isInteger(stage)) {
+        throw new RangeError(`Stage must be a positive integer, got ${stage}`);
+      }
+      return new _Row(Array.from({ length: stage }, (_, i) => i));
+    }
+    // ---------------------------------------------------------------------------
+    // Access
+    // ---------------------------------------------------------------------------
+    /** The bell at position i (0-based). */
+    at(i) {
+      const b = this._bells[i];
+      if (b === void 0) throw new RangeError(`Position ${i} out of range for stage ${this.stage}`);
+      return b;
+    }
+    [Symbol.iterator]() {
+      return this._bells[Symbol.iterator]();
+    }
+    toArray() {
+      return [...this._bells];
+    }
+    toString() {
+      return this._bells.map(bellToChar).join("");
+    }
+    // ---------------------------------------------------------------------------
+    // Algebraic operations
+    // ---------------------------------------------------------------------------
+    /**
+     * Compose two rows: (this ∘ other)[i] = this[other[i]].
+     * Equivalent to applying `other` first, then `this`.
+     */
+    compose(other) {
+      if (this.stage !== other.stage) {
+        throw new Error(`Cannot compose rows of different stages (${this.stage} vs ${other.stage})`);
+      }
+      const result = new Array(this.stage);
+      for (let i = 0; i < this.stage; i++) {
+        result[i] = this._bells[other._bells[i]];
+      }
+      return new _Row(result);
+    }
+    /**
+     * Apply a Change to this row, producing the next row.
+     * Delegates to Change.apply for a single source of truth.
+     */
+    apply(change) {
+      return change.apply(this);
+    }
+    /** The inverse permutation: this.compose(this.inverse()).isRounds() === true */
+    inverse() {
+      const result = new Array(this.stage);
+      for (let i = 0; i < this.stage; i++) {
+        result[this._bells[i]] = i;
+      }
+      return new _Row(result);
+    }
+    // ---------------------------------------------------------------------------
+    // Properties
+    // ---------------------------------------------------------------------------
+    /** +1 for an even permutation, -1 for odd. Computed via cycle decomposition. */
+    sign() {
+      const visited = new Uint8Array(this.stage);
+      let sign = 1;
+      for (let i = 0; i < this.stage; i++) {
+        if (visited[i]) continue;
+        let cycleLength = 0;
+        let j = i;
+        while (!visited[j]) {
+          visited[j] = 1;
+          j = this._bells[j];
+          cycleLength++;
+        }
+        if (cycleLength % 2 === 0) sign = -sign;
+      }
+      return sign;
+    }
+    isEvenPermutation() {
+      return this.sign() === 1;
+    }
+    /** True if this row is rounds (the identity permutation). */
+    isRounds() {
+      for (let i = 0; i < this.stage; i++) {
+        if (this._bells[i] !== i) return false;
+      }
+      return true;
+    }
+    // ---------------------------------------------------------------------------
+    // Comparison
+    // ---------------------------------------------------------------------------
+    equals(other) {
+      if (this.stage !== other.stage) return false;
+      for (let i = 0; i < this.stage; i++) {
+        if (this._bells[i] !== other._bells[i]) return false;
+      }
+      return true;
+    }
+    /**
+     * Lexicographic comparison, consistent with C++ ringing-lib.
+     * Returns negative if this < other, 0 if equal, positive if this > other.
+     */
+    compare(other) {
+      const len = Math.min(this.stage, other.stage);
+      for (let i = 0; i < len; i++) {
+        const diff = (this._bells[i] ?? 0) - (other._bells[i] ?? 0);
+        if (diff !== 0) return diff;
+      }
+      return this.stage - other.stage;
+    }
+  };
+
+  // src/change.ts
+  var Change = class _Change {
+    // ---------------------------------------------------------------------------
+    // Construction
+    // ---------------------------------------------------------------------------
+    /**
+     * Construct from a set of 0-based place indices.
+     * Places are sorted and validated: every place must be in range,
+     * no duplicates, and adjacent places must not conflict with swapping pairs.
+     */
+    constructor(stage, places) {
+      __publicField(this, "stage");
+      __publicField(this, "places");
+      if (stage <= 0 || !Number.isInteger(stage)) {
+        throw new RangeError(`Stage must be a positive integer, got ${stage}`);
+      }
+      const sorted = [...places].sort((a, b) => a - b);
+      for (const p of sorted) {
+        if (!Number.isInteger(p) || p < 0 || p >= stage) {
+          throw new RangeError(`Place ${p} is out of range for stage ${stage}`);
+        }
+      }
+      for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i] === sorted[i - 1]) throw new Error(`Duplicate place: ${sorted[i]}`);
+      }
+      const allPlaces = new Set(sorted);
+      this.stage = stage;
+      this.places = Object.freeze(sorted);
+    }
+    /**
+     * Parse a single place notation token into a Change.
+     *
+     * Accepts:
+     *  - 'X' or '-' → cross change (no places)
+     *  - A string of bell characters → explicit places (e.g. '14', '1238')
+     *
+     * Implicit external places are added automatically when needed:
+     * if the lowest or highest position is not covered by a swap, it becomes a place.
+     */
+    static parse(token, stage) {
+      const t = token.trim();
+      if (t === "X" || t === "x" || t === "-") {
+        return _Change.cross(stage);
+      }
+      const explicit = [];
+      for (const c of t) {
+        explicit.push(bellFromChar(c));
+      }
+      const placeSet = new Set(explicit);
+      const implicitPlaces = _Change._fillImplicitExternals(stage, placeSet);
+      return new _Change(stage, [...implicitPlaces]);
+    }
+    /** The cross change (all adjacent pairs swap, no bells in place). */
+    static cross(stage) {
+      if (stage % 2 !== 0) {
+        throw new Error(`Cross change requires an even stage, got ${stage}`);
+      }
+      return new _Change(stage, []);
+    }
+    // ---------------------------------------------------------------------------
+    // Internal helpers
+    // ---------------------------------------------------------------------------
+    /**
+     * Given a set of explicit places, add implicit external places at the
+     * low and high ends so that every bell is either in a place or part of a swap.
+     */
+    static _fillImplicitExternals(stage, places) {
+      const result = new Set(places);
+      const covered = () => {
+        let i = 0;
+        while (i < stage) {
+          if (result.has(i)) {
+            i++;
+          } else if (i + 1 < stage && !result.has(i + 1)) {
+            i += 2;
+          } else {
+            return false;
+          }
+        }
+        return true;
+      };
+      if (!result.has(0)) {
+        let i = 0;
+        if (!result.has(1)) {
+        } else {
+          result.add(0);
+        }
+      }
+      const last = stage - 1;
+      if (!result.has(last)) {
+        if (!covered()) {
+          result.add(last);
+        }
+      }
+      if (!covered()) {
+        throw new Error(
+          `Invalid place notation: places [${[...result].sort((a, b) => a - b).map((p) => bellToChar(p)).join("")}] leave a bell without a pair on stage ${stage}`
+        );
+      }
+      return result;
+    }
+    // ---------------------------------------------------------------------------
+    // Application
+    // ---------------------------------------------------------------------------
+    /** Apply this change to a row, returning the next row. */
+    apply(row) {
+      if (row.stage !== this.stage) {
+        throw new Error(`Cannot apply change of stage ${this.stage} to row of stage ${row.stage}`);
+      }
+      const result = row.toArray();
+      const placeSet = new Set(this.places);
+      let i = 0;
+      while (i < this.stage) {
+        if (placeSet.has(i)) {
+          i++;
+        } else {
+          const tmp = result[i];
+          result[i] = result[i + 1];
+          result[i + 1] = tmp;
+          i += 2;
+        }
+      }
+      return new Row(result);
+    }
+    // ---------------------------------------------------------------------------
+    // Derived data
+    // ---------------------------------------------------------------------------
+    /** The pairs of adjacent bells that swap. */
+    swaps() {
+      const placeSet = new Set(this.places);
+      const result = [];
+      let i = 0;
+      while (i < this.stage) {
+        if (placeSet.has(i)) {
+          i++;
+        } else {
+          result.push([i, i + 1]);
+          i += 2;
+        }
+      }
+      return result;
+    }
+    // ---------------------------------------------------------------------------
+    // Display / comparison
+    // ---------------------------------------------------------------------------
+    /**
+     * Return the conventional place notation string.
+     * Cross changes return 'X'; others return e.g. '14', '1238'.
+     */
+    toString() {
+      if (this.places.length === 0) return "X";
+      return this.places.map((p) => bellToChar(p)).join("");
+    }
+    equals(other) {
+      if (this.stage !== other.stage) return false;
+      if (this.places.length !== other.places.length) return false;
+      for (let i = 0; i < this.places.length; i++) {
+        if (this.places[i] !== other.places[i]) return false;
+      }
+      return true;
+    }
+  };
+
+  // src/place-notation.ts
+  var PlaceNotation = class _PlaceNotation {
+    /**
+     * Parse a full place notation string into an ordered array of Changes.
+     *
+     * Symmetric form ('&body,leadEnd'):
+     *   Body of n changes expands to palindrome (2n-1 changes) plus the
+     *   lead-end appended — giving 2n changes total.
+     *   Without a comma: yields just the 2n-1 palindrome.
+     *
+     * Non-symmetric form:
+     *   All changes written out in full, '-'/'X' act as cross tokens and
+     *   as separators; '.' separates adjacent place tokens.
+     *   If ',' is present, the part after it is appended as the lead-end.
+     */
+    static parse(notation, stage) {
+      const s = notation.trim();
+      const body = s.startsWith("&") ? s.slice(1) : s;
+      if (body.includes(",")) {
+        return _PlaceNotation._parseSymmetric(body, stage);
+      }
+      if (s.startsWith("&")) {
+        return _PlaceNotation._parseSymmetric(body, stage);
+      }
+      return _PlaceNotation._tokenize(s, stage);
+    }
+    /**
+     * Reconstruct a compact place notation string from an array of Changes.
+     *
+     * Auto-detects symmetric palindromic sequences and emits '&...,<lead-end>'
+     * form when symmetric=true (the default). Pass symmetric=false to force
+     * full dot-separated output.
+     */
+    static stringify(changes, symmetric) {
+      if (changes.length === 0) return "";
+      const useSymmetric = symmetric ?? _PlaceNotation._isSymmetric(changes);
+      if (useSymmetric && changes.length >= 3) {
+        const n = changes.length / 2;
+        const body = changes.slice(0, Math.ceil(n));
+        const leadEnd = changes[changes.length - 1];
+        return "&" + _PlaceNotation._stringifyBody(body) + "," + leadEnd.toString();
+      }
+      return _PlaceNotation._stringifyBody(changes);
+    }
+    // ---------------------------------------------------------------------------
+    // Internal helpers
+    // ---------------------------------------------------------------------------
+    /**
+     * Parse the part after '&', which may contain a comma for the lead-end.
+     *
+     * `&body,leadEnd` → palindrome(body) + [leadEnd]   = 2n changes
+     * `&body`         → palindrome(body)                = 2n-1 changes
+     */
+    static _parseSymmetric(rest, stage) {
+      const commaIdx = rest.indexOf(",");
+      const bodyStr = commaIdx !== -1 ? rest.slice(0, commaIdx) : rest;
+      const leadEndStr = commaIdx !== -1 ? rest.slice(commaIdx + 1).trim() : null;
+      const body = _PlaceNotation._tokenize(bodyStr, stage);
+      if (body.length === 0) throw new Error("Empty symmetric place notation body");
+      const palindrome = [...body, ...body.slice(0, -1).reverse()];
+      if (leadEndStr !== null) {
+        palindrome.push(Change.parse(leadEndStr, stage));
+      }
+      return palindrome;
+    }
+    /**
+     * Tokenize a place notation body string into Changes.
+     *
+     * '-' and 'X'/'x' each produce a cross change AND act as separators.
+     * '.' is a pure separator (between adjacent place-change tokens).
+     * Everything else is collected as a place-change token.
+     */
+    static _tokenize(s, stage) {
+      const changes = [];
+      let i = 0;
+      while (i < s.length) {
+        const c = s[i];
+        if (c === "-" || c === "x" || c === "X") {
+          changes.push(Change.cross(stage));
+          i++;
+        } else if (c === ".") {
+          i++;
+        } else {
+          let token = "";
+          while (i < s.length && s[i] !== "-" && s[i] !== "x" && s[i] !== "X" && s[i] !== "." && s[i] !== ",") {
+            token += s[i];
+            i++;
+          }
+          if (token) changes.push(Change.parse(token, stage));
+        }
+      }
+      return changes;
+    }
+    /**
+     * Emit a dot-separated notation string, using '-' for cross changes.
+     * Adjacent cross changes are separated by '.' for readability.
+     */
+    static _stringifyBody(changes) {
+      return changes.map((c) => c.toString()).join(".").replace(/X\.X/g, "X.X");
+    }
+    /**
+     * A lead is symmetric if the sequence (minus the lead-end) is a palindrome.
+     * Checks changes[i] === changes[n-2-i] for i in 0..floor((n-1)/2)-1.
+     */
+    static _isSymmetric(changes) {
+      const n = changes.length;
+      if (n < 3) return false;
+      const body = changes.slice(0, n - 1);
+      for (let i = 0; i < Math.floor(body.length / 2); i++) {
+        if (!body[i].equals(body[body.length - 1 - i])) return false;
+      }
+      return true;
+    }
+  };
+
+  // src/method.ts
+  var Method = class _Method {
+    // ---------------------------------------------------------------------------
+    // Construction
+    // ---------------------------------------------------------------------------
+    constructor(changes, name = "") {
+      __publicField(this, "name");
+      __publicField(this, "stage");
+      __publicField(this, "changes");
+      if (changes.length === 0) throw new Error("Method must have at least one change");
+      const stage = changes[0].stage;
+      for (const c of changes) {
+        if (c.stage !== stage)
+          throw new Error(`All changes must have the same stage (expected ${stage}, got ${c.stage})`);
+      }
+      this.changes = Object.freeze([...changes]);
+      this.stage = stage;
+      this.name = name;
+    }
+    /**
+     * Convenience factory: parse place notation and build a Method.
+     *
+     * @example
+     * const pb = Method.fromPlaceNotation('&-1-1-1-1-1,2', 8, 'Plain Bob Major');
+     */
+    static fromPlaceNotation(notation, stage, name = "") {
+      const changes = PlaceNotation.parse(notation, stage);
+      return new _Method(changes, name);
+    }
+    // ---------------------------------------------------------------------------
+    // Access
+    // ---------------------------------------------------------------------------
+    get leadLength() {
+      return this.changes.length;
+    }
+    at(i) {
+      const c = this.changes[i];
+      if (c === void 0)
+        throw new RangeError(`Change index ${i} out of range (lead length ${this.leadLength})`);
+      return c;
+    }
+    [Symbol.iterator]() {
+      return this.changes[Symbol.iterator]();
+    }
+    // ---------------------------------------------------------------------------
+    // Lead structure
+    // ---------------------------------------------------------------------------
+    /**
+     * The lead head: the row reached after one complete lead starting from rounds.
+     */
+    leadHead() {
+      return this._computeLeadHead(Row.rounds(this.stage));
+    }
+    /**
+     * Generate all rows in one lead, starting from `startRow` (default: rounds).
+     *
+     * Yields `leadLength + 1` rows:
+     *   index 0              — the starting row
+     *   index 1..leadLength  — the row after each change
+     *   final row            — the lead head (same as startRow for a plain course)
+     */
+    *leadRows(startRow) {
+      let row = startRow ?? Row.rounds(this.stage);
+      yield row;
+      for (const change of this.changes) {
+        row = change.apply(row);
+        yield row;
+      }
+    }
+    /**
+     * Like `leadRows`, but omits the final lead head.
+     * Yields exactly `leadLength` rows.
+     * Use this when proof-checking a multi-lead touch to avoid counting
+     * the lead head twice.
+     */
+    *leadRowsNoLH(startRow) {
+      let row = startRow ?? Row.rounds(this.stage);
+      yield row;
+      for (let i = 0; i < this.changes.length - 1; i++) {
+        row = this.changes[i].apply(row);
+        yield row;
+      }
+    }
+    /**
+     * Generate lead-head rows for successive leads, starting from rounds.
+     * Terminates when rounds is reached again (or after stage! leads as a safety cap).
+     * Useful for inspecting the lead-head order of a method.
+     */
+    *leadHeads() {
+      const maxLeads = factorial(this.stage);
+      let row = Row.rounds(this.stage);
+      const lh = this.leadHead();
+      for (let i = 0; i < maxLeads; i++) {
+        row = row.compose(lh);
+        yield row;
+        if (row.isRounds()) return;
+      }
+    }
+    // ---------------------------------------------------------------------------
+    // Display
+    // ---------------------------------------------------------------------------
+    /** Return the place notation string for this method. */
+    toString() {
+      return (this.name ? `${this.name}: ` : "") + PlaceNotation.stringify([...this.changes]);
+    }
+    // ---------------------------------------------------------------------------
+    // Internal
+    // ---------------------------------------------------------------------------
+    _computeLeadHead(startRow) {
+      let row = startRow;
+      for (const change of this.changes) row = change.apply(row);
+      return row;
+    }
+  };
+  function factorial(n) {
+    let r = 1;
+    for (let i = 2; i <= n; i++) r *= i;
+    return r;
+  }
+
+  // src/prover.ts
+  var Proof = class {
+    constructor(spec) {
+      /** True if no row exceeded the allowed number of occurrences. */
+      __publicField(this, "isTrue");
+      /** Every row that occurred too many times, with the lines where it appeared. */
+      __publicField(this, "falseRows");
+      /** The stage of the proven rows (0 if nothing was proven). */
+      __publicField(this, "stage");
+      /** How many rows were proven in total. */
+      __publicField(this, "rowCount");
+      /** The occurrence threshold used (1 = standard truth). */
+      __publicField(this, "maxOccurs");
+      this.isTrue = spec.isTrue;
+      this.falseRows = Object.freeze(
+        spec.falseRows.map((f) => Object.freeze({ row: f.row, lines: Object.freeze([...f.lines]) }))
+      );
+      this.stage = spec.stage;
+      this.rowCount = spec.rowCount;
+      this.maxOccurs = spec.maxOccurs;
+      Object.freeze(this);
+    }
+    /** A plain-data form suitable for transport and storage. Rows render as strings. */
+    toJSON() {
+      return {
+        isTrue: this.isTrue,
+        stage: this.stage,
+        rowCount: this.rowCount,
+        maxOccurs: this.maxOccurs,
+        falseRows: this.falseRows.map((f) => ({ row: f.row.toString(), lines: [...f.lines] }))
+      };
+    }
+    /** Human-readable summary, e.g. `TRUE (70 rows)` or `FALSE: 12345 at lines 1, 71`. */
+    toString() {
+      if (this.isTrue) return `TRUE (${this.rowCount} rows)`;
+      const detail = this.falseRows.map((f) => `${f.row.toString()} at lines ${f.lines.join(", ")}`).join("; ");
+      return `FALSE (${this.rowCount} rows): ${detail}`;
+    }
+  };
+  var Prover = class {
+    constructor(maxOccurs = 1) {
+      __publicField(this, "_maxOccurs");
+      /** Row string → list of 1-based line numbers where it has been seen. */
+      __publicField(this, "_seen", /* @__PURE__ */ new Map());
+      __publicField(this, "_stage", 0);
+      __publicField(this, "_count", 0);
+      if (!Number.isInteger(maxOccurs) || maxOccurs < 1) {
+        throw new RangeError(`maxOccurs must be a positive integer, got ${maxOccurs}`);
+      }
+      this._maxOccurs = maxOccurs;
+    }
+    /** The occurrence threshold in use. */
+    get maxOccurs() {
+      return this._maxOccurs;
+    }
+    /**
+     * Add a single row. Returns true if the touch is still true after adding,
+     * false if this row has now appeared more than `maxOccurs` times.
+     */
+    add(row) {
+      if (this._count === 0) {
+        this._stage = row.stage;
+      } else if (row.stage !== this._stage) {
+        throw new Error(
+          `Cannot prove rows of mixed stages (${this._stage} vs ${row.stage})`
+        );
+      }
+      this._count++;
+      const key = row.toString();
+      const lines = this._seen.get(key);
+      if (lines === void 0) {
+        this._seen.set(key, [this._count]);
+        return true;
+      }
+      lines.push(this._count);
+      return lines.length <= this._maxOccurs;
+    }
+    /** Add multiple rows. Returns false if any row exceeds `maxOccurs`. */
+    addAll(rows) {
+      let ok = true;
+      for (const row of rows) {
+        if (!this.add(row)) ok = false;
+      }
+      return ok;
+    }
+    /** True if no row has exceeded `maxOccurs`. */
+    isTrue() {
+      for (const lines of this._seen.values()) {
+        if (lines.length > this._maxOccurs) return false;
+      }
+      return true;
+    }
+    /** How many times a specific row has been seen. */
+    countRow(row) {
+      return this._seen.get(row.toString())?.length ?? 0;
+    }
+    /**
+     * All rows that have exceeded `maxOccurs`, with the 1-based line numbers at
+     * which each occurrence was seen. Lets the verifier report *where* a touch
+     * is false. Ordered by first occurrence.
+     */
+    falseRows() {
+      const out = [];
+      for (const [key, lines] of this._seen) {
+        if (lines.length > this._maxOccurs) {
+          out.push({ row: Row.parse(key), lines: [...lines] });
+        }
+      }
+      out.sort((a, b) => (a.lines[0] ?? 0) - (b.lines[0] ?? 0));
+      return out;
+    }
+    /** The number of rows added in total. */
+    size() {
+      return this._count;
+    }
+    /** Snapshot the current state as an immutable `Proof` value (ADR-0005). */
+    proof() {
+      return new Proof({
+        isTrue: this.isTrue(),
+        falseRows: this.falseRows(),
+        stage: this._stage,
+        rowCount: this._count,
+        maxOccurs: this._maxOccurs
+      });
+    }
+    /** Reset state to check a new touch. */
+    reset() {
+      this._seen = /* @__PURE__ */ new Map();
+      this._stage = 0;
+      this._count = 0;
+    }
+  };
+
+  // src/composition.ts
+  var Composition = class _Composition {
+    constructor(spec) {
+      __publicField(this, "method");
+      __publicField(this, "startRow");
+      /** Number of leads in the touch. */
+      __publicField(this, "length");
+      /** The available call types, indexed for lookup by symbol. */
+      __publicField(this, "calls");
+      /** Which call is made at which lead; plain leads are omitted. Sorted by lead. */
+      __publicField(this, "calling");
+      __publicField(this, "_callBySymbol");
+      __publicField(this, "_callByLead");
+      if (!Number.isInteger(spec.length) || spec.length < 0) {
+        throw new RangeError(`length must be a non-negative integer, got ${spec.length}`);
+      }
+      this.method = spec.method;
+      this.length = spec.length;
+      this.startRow = spec.startRow ?? Row.rounds(spec.method.stage);
+      if (this.startRow.stage !== spec.method.stage) {
+        throw new Error(
+          `Start row stage (${this.startRow.stage}) does not match method stage (${spec.method.stage})`
+        );
+      }
+      this.calls = Object.freeze([...spec.calls ?? []]);
+      this._callBySymbol = /* @__PURE__ */ new Map();
+      for (const c of this.calls) {
+        this._callBySymbol.set(c.symbol.toLowerCase(), c);
+      }
+      const calling = [...spec.calling ?? []].sort((a, b) => a.lead - b.lead);
+      this._callByLead = /* @__PURE__ */ new Map();
+      for (const entry of calling) {
+        if (entry.lead < 0 || entry.lead >= spec.length) {
+          throw new RangeError(
+            `Calling entry lead ${entry.lead} is out of range [0, ${spec.length})`
+          );
+        }
+        const call = this._callBySymbol.get(entry.call.toLowerCase());
+        if (call === void 0) {
+          throw new Error(`Calling references unknown call symbol '${entry.call}'`);
+        }
+        this._callByLead.set(entry.lead, call);
+      }
+      this.calling = Object.freeze(calling);
+    }
+    /** The call made at a given lead, or undefined for a plain lead. */
+    callAt(lead) {
+      return this._callByLead.get(lead);
+    }
+    /** Look up a defined call by its symbol (case-insensitive). */
+    callBySymbol(symbol) {
+      return this._callBySymbol.get(symbol.toLowerCase());
+    }
+    // ---------------------------------------------------------------------------
+    // Construction helpers
+    // ---------------------------------------------------------------------------
+    /**
+     * Build a `Composition` from a calling string: one character per lead, read
+     * left to right. `.` is a plain lead; every other character is matched to a
+     * defined call by symbol (case-insensitively). The number of characters is
+     * the number of leads.
+     *
+     * @example
+     * Composition.fromCalling(grandsire, 's.s.s-.', { calls });  // SPSPSBP
+     */
+    static fromCalling(method, callingStr, opts = { calls: [] }) {
+      const plain = opts.plainSymbol ?? ".";
+      const chars = [...callingStr.trim()];
+      const calling = [];
+      chars.forEach((c, lead) => {
+        if (c === plain) return;
+        calling.push({ lead, call: c });
+      });
+      return new _Composition({
+        method,
+        length: chars.length,
+        calls: opts.calls,
+        calling,
+        ...opts.startRow ? { startRow: opts.startRow } : {}
+      });
+    }
+    /** Ergonomic builder yielding an immutable `Composition`. */
+    static builder(method, length) {
+      return new CompositionBuilder(method, length);
+    }
+    // ---------------------------------------------------------------------------
+    // Immutable updates
+    // ---------------------------------------------------------------------------
+    /** Return a new Composition with `callSymbol` made at `lead`. */
+    withCall(lead, callSymbol) {
+      const calling = this.calling.filter((e) => e.lead !== lead);
+      calling.push({ lead, call: callSymbol });
+      return new _Composition({
+        method: this.method,
+        length: this.length,
+        calls: [...this.calls],
+        calling,
+        startRow: this.startRow
+      });
+    }
+    /** Return a new Composition with the call at `lead` removed (made plain). */
+    withoutCall(lead) {
+      return new _Composition({
+        method: this.method,
+        length: this.length,
+        calls: [...this.calls],
+        calling: this.calling.filter((e) => e.lead !== lead),
+        startRow: this.startRow
+      });
+    }
+    // ---------------------------------------------------------------------------
+    // Serialisation / identity
+    // ---------------------------------------------------------------------------
+    toJSON() {
+      return {
+        method: {
+          name: this.method.name,
+          notation: PlaceNotation.stringify([...this.method.changes]),
+          stage: this.method.stage
+        },
+        startRow: this.startRow.toString(),
+        length: this.length,
+        calls: this.calls.map((c) => ({
+          name: c.name,
+          symbol: c.symbol,
+          notation: PlaceNotation.stringify(c.changes, false),
+          ...c.position ? { position: c.position } : {}
+        })),
+        calling: this.calling.map((e) => ({ lead: e.lead, call: e.call }))
+      };
+    }
+    /** Reconstruct from `toJSON()` output. Rebuilds the method from its notation. */
+    static fromJSON(json) {
+      const method = Method.fromPlaceNotation(json.method.notation, json.method.stage, json.method.name);
+      const calls = json.calls.map((c) => ({
+        name: c.name,
+        symbol: c.symbol,
+        changes: PlaceNotation.parse(c.notation, json.method.stage),
+        ...c.position ? { position: c.position } : {}
+      }));
+      return new _Composition({
+        method,
+        length: json.length,
+        calls,
+        calling: json.calling,
+        startRow: Row.parse(json.startRow)
+      });
+    }
+    /**
+     * A canonical, deterministic descriptor string. Two compositions that
+     * describe the same touch produce the same key. Identity is the bare calling
+     * — method, start, calls actually made, and length — and nothing else
+     * (ADR-0005).
+     */
+    key() {
+      const methodId = `${this.method.stage}:${PlaceNotation.stringify([...this.method.changes], false)}`;
+      const usedSymbols = new Set(this.calling.map((e) => e.call.toLowerCase()));
+      const callDefs = this.calls.filter((c) => usedSymbols.has(c.symbol.toLowerCase())).map((c) => `${c.symbol.toLowerCase()}=${PlaceNotation.stringify(c.changes, false)}@${c.position ?? 0}`).sort().join("|");
+      const callingStr = this.calling.map((e) => `${e.lead}${e.call.toLowerCase()}`).join(",");
+      return [
+        `m=${methodId}`,
+        `s=${this.startRow.toString()}`,
+        `n=${this.length}`,
+        `c=${callDefs}`,
+        `k=${callingStr}`
+      ].join(";");
+    }
+    /** A short content hash (FNV-1a, 32-bit) of `key()` — pure, portable. */
+    hash() {
+      return fnv1a(this.key());
+    }
+    equals(other) {
+      return this.key() === other.key();
+    }
+  };
+  var CompositionBuilder = class {
+    constructor(method, length) {
+      __publicField(this, "_method");
+      __publicField(this, "_length");
+      __publicField(this, "_calls", []);
+      __publicField(this, "_calling", []);
+      __publicField(this, "_startRow");
+      this._method = method;
+      this._length = length;
+    }
+    defineCall(name, symbol, changes, position) {
+      this._calls.push({ name, symbol, changes, ...position ? { position } : {} });
+      return this;
+    }
+    call(lead, callSymbol) {
+      this._calling.push({ lead, call: callSymbol });
+      return this;
+    }
+    startFrom(row) {
+      this._startRow = row;
+      return this;
+    }
+    build() {
+      return new Composition({
+        method: this._method,
+        length: this._length,
+        calls: this._calls,
+        calling: this._calling,
+        ...this._startRow ? { startRow: this._startRow } : {}
+      });
+    }
+  };
+  function fnv1a(s) {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(16).padStart(8, "0");
+  }
+
+  // src/touch.ts
+  var Touch = class {
+    constructor(composition) {
+      __publicField(this, "composition");
+      __publicField(this, "_rungCache");
+      this.composition = composition;
+    }
+    // ---------------------------------------------------------------------------
+    // Lead expansion
+    // ---------------------------------------------------------------------------
+    /**
+     * The changes of one lead, with any call for that lead substituted into the
+     * tail. The call's replacement changes overwrite the last `changes.length`
+     * changes (offset earlier by `position`).
+     */
+    leadChanges(lead) {
+      const base = [...this.composition.method.changes];
+      const call = this.composition.callAt(lead);
+      if (call === void 0) return base;
+      const k = call.changes.length;
+      const pos = call.position ?? 0;
+      const endIdx = base.length - 1 - pos;
+      const startIdx = endIdx - k + 1;
+      if (startIdx < 0 || endIdx >= base.length) {
+        throw new RangeError(
+          `Call '${call.name}' (${k} changes at position ${pos}) does not fit a lead of length ${base.length}`
+        );
+      }
+      for (let j = 0; j < k; j++) base[startIdx + j] = call.changes[j];
+      return base;
+    }
+    // ---------------------------------------------------------------------------
+    // Internal expansion (cached)
+    // ---------------------------------------------------------------------------
+    _rung() {
+      if (this._rungCache !== void 0) return this._rungCache;
+      const { method, length, startRow } = this.composition;
+      const leadLength = method.leadLength;
+      const lastLeadStart = (length - 1) * leadLength;
+      const rows = [startRow];
+      let row = startRow;
+      let cameRound = false;
+      let comeRoundIndex = null;
+      outer: for (let lead = 0; lead < length; lead++) {
+        const changes = this.leadChanges(lead);
+        for (const change of changes) {
+          row = change.apply(row);
+          const changeIndex = rows.length;
+          if (row.equals(startRow) && changeIndex > lastLeadStart) {
+            rows.push(row);
+            cameRound = true;
+            comeRoundIndex = changeIndex;
+            break outer;
+          }
+          rows.push(row);
+        }
+      }
+      this._rungCache = { rows, cameRound, comeRoundIndex };
+      return this._rungCache;
+    }
+    // ---------------------------------------------------------------------------
+    // Access
+    // ---------------------------------------------------------------------------
+    /**
+     * The rows of the rung touch, in order, starting from `composition.startRow`.
+     * For a touch that comes round, the final row is the come-round repeat of the
+     * start row (so the sequence both starts and ends at rounds).
+     */
+    *rows() {
+      yield* this._rung().rows;
+    }
+    /** All rows as an array (convenience). */
+    toArray() {
+      return [...this._rung().rows];
+    }
+    /** The number of rows produced by `rows()` (includes start and final row). */
+    rowCount() {
+      return this._rung().rows.length;
+    }
+    /** The number of changes rung — the headline length (e.g. 70, 84, 97, 224). */
+    changeCount() {
+      return this._rung().rows.length - 1;
+    }
+    /** The number of leads (equals `composition.length`). */
+    leadCount() {
+      return this.composition.length;
+    }
+    /** True if the touch returns to its start row within the last specified lead. */
+    comesToRounds() {
+      return this._rung().cameRound;
+    }
+    /** True if the come-round is a snap (one change before a lead-end). */
+    isSnapFinish() {
+      const { cameRound, comeRoundIndex } = this._rung();
+      if (!cameRound || comeRoundIndex === null) return false;
+      return comeRoundIndex % this.composition.method.leadLength !== 0;
+    }
+    // ---------------------------------------------------------------------------
+    // Proving (trust boundary convenience)
+    // ---------------------------------------------------------------------------
+    /**
+     * Prove the touch true or false, returning an immutable `Proof` (ADR-0005).
+     *
+     * The come-round repeat of the start row is excluded from the proven rows, so
+     * a true touch's start row is counted exactly once. `maxOccurs` raises the
+     * repetition threshold for multi-extent touches (default 1 = standard truth).
+     */
+    prove(maxOccurs = 1) {
+      const { rows, cameRound } = this._rung();
+      const toProve = cameRound ? rows.slice(0, -1) : rows;
+      const prover = new Prover(maxOccurs);
+      prover.addAll(toProve);
+      return prover.proof();
+    }
+  };
+
+  // src/method-library.ts
+  var MethodLibrary = class {
+    constructor(entries) {
+      __publicField(this, "_entries");
+      __publicField(this, "_byName");
+      this._entries = [...entries];
+      this._byName = /* @__PURE__ */ new Map();
+      for (const e of this._entries) {
+        this._byName.set(e.name.toLowerCase(), e);
+      }
+    }
+    /** Look up an entry by exact name (case-insensitive). */
+    find(name) {
+      return this._byName.get(name.toLowerCase());
+    }
+    /** Look up a method by name and build it (case-insensitive). */
+    method(name) {
+      const e = this.find(name);
+      if (e === void 0) return void 0;
+      return Method.fromPlaceNotation(e.notation, e.stage, e.name);
+    }
+    /** All entries matching a given stage. */
+    byStage(stage) {
+      return this._entries.filter((e) => e.stage === stage);
+    }
+    /** All entries matching a classification. */
+    byClass(classification) {
+      return this._entries.filter((e) => e.classification === classification);
+    }
+    /** Number of entries. */
+    get size() {
+      return this._entries.length;
+    }
+    [Symbol.iterator]() {
+      return this._entries[Symbol.iterator]();
+    }
+  };
+
+  // src/data/standard-methods.ts
+  var STANDARD_METHODS = [
+    // Grandsire Triples — plain lead written out explicitly (14 changes).
+    // Lead head 1253746; plain course = 5 leads / 70 rows (see context.md).
+    {
+      name: "Grandsire Triples",
+      stage: 7,
+      notation: "3.1.7.1.7.1.7.1.7.1.7.1.7.1",
+      classification: "Place",
+      // approximate; Grandsire predates the modern scheme
+      leadHead: "1253746"
+    },
+    {
+      name: "Plain Bob Major",
+      stage: 8,
+      notation: "&-18-18-18-18,12",
+      classification: "Bob",
+      leadHead: "13527486"
+    },
+    {
+      name: "Plain Bob Minor",
+      stage: 6,
+      notation: "&-16-16-16,12",
+      classification: "Bob"
+    },
+    {
+      name: "Plain Bob Doubles",
+      stage: 5,
+      notation: "&5.1.5.1.5,125",
+      classification: "Bob"
+    },
+    {
+      name: "Cambridge Surprise Major",
+      stage: 8,
+      notation: "&-38-14-1258-36-14-58-16-78,12",
+      classification: "Surprise",
+      leadHead: "15738264"
+    },
+    // Stedman Triples — a *principle* (every bell does the same work; no fixed
+    // hunt bell), built from alternating slow/quick "sixes". It is modelled here
+    // as one repeating double-six (slow + quick = 12 changes) so it fits the
+    // lead-based `Method` shape: lead head 6347251, plain course = 7 leads / 84
+    // changes. Notation uses the comma palindrome convention without '&':
+    //   3.1.7.3.1.3,1  →  3.1.7.3.1.3.1.3.7.1.3.1  (verified against complib).
+    // NB: Stedman's calls are made at *six*-ends (every 6 changes), which the
+    // current one-call-per-lead model (ADR-0006) cannot fully express — see
+    // ADR-0007. Plain ringing and proving work correctly.
+    {
+      name: "Stedman Triples",
+      stage: 7,
+      notation: "3.1.7.3.1.3,1",
+      classification: "Principle",
+      leadHead: "6347251"
+    }
+  ];
+  function grandsireCalls(stage = 7) {
+    return [
+      {
+        name: "Bob",
+        symbol: "-",
+        changes: [Change.parse("3", stage), Change.parse("1", stage)]
+      },
+      {
+        name: "Single",
+        symbol: "s",
+        changes: [Change.parse("3", stage), Change.parse("123", stage)]
+      }
+    ];
+  }
+  function plainBobCalls(stage = 8) {
+    return [
+      { name: "Bob", symbol: "-", changes: [Change.parse("14", stage)] },
+      { name: "Single", symbol: "s", changes: [Change.parse("1234", stage)] }
+    ];
+  }
+  function stedmanTriplesCalls() {
+    const sixEndChange = { P: "7", B: "5", S: "567" };
+    const plain = ["3", "1", "7", "3", "1", "3", "1", "3", "7", "1", "3", "1"];
+    const longName = { P: "Plain", B: "Bob", S: "Single" };
+    const pairs = ["PB", "PS", "BP", "BB", "BS", "SP", "SB", "SS"];
+    return pairs.map((sym) => {
+      const a = sym[0];
+      const b = sym[1];
+      const tokens = [...plain];
+      tokens[2] = sixEndChange[a];
+      tokens[8] = sixEndChange[b];
+      return {
+        name: `${longName[a]}/${longName[b]} six`,
+        symbol: sym,
+        changes: tokens.map((t) => Change.parse(t, 7))
+      };
+    });
+  }
+  function stedmanTriplesComposition(perSixCalling, method) {
+    const m = method ?? Method.fromPlaceNotation("3.1.7.3.1.3,1", 7, "Stedman Triples");
+    const calls = stedmanTriplesCalls();
+    const code = (ch) => {
+      const c = ch.toLowerCase();
+      if (c === "." || c === "p") return "P";
+      if (c === "-" || c === "b") return "B";
+      if (c === "s") return "S";
+      throw new Error(`Unrecognised six call '${ch}' (use . / - / s)`);
+    };
+    const sixes = [...perSixCalling.trim()].map(code);
+    const length = Math.ceil(sixes.length / 2);
+    const calling = [];
+    for (let lead = 0; lead < length; lead++) {
+      const a = sixes[2 * lead] ?? "P";
+      const b = sixes[2 * lead + 1] ?? "P";
+      if (a === "P" && b === "P") continue;
+      calling.push({ lead, call: `${a}${b}` });
+    }
+    return new Composition({ method: m, length, calls, calling });
+  }
+  return __toCommonJS(src_exports);
+})();
+
+</script>
+<script>
+"use strict";
+const R = window.RingingLib;
+const lib = new R.MethodLibrary(R.STANDARD_METHODS);
+const ENTRIES = R.STANDARD_METHODS;
+
+// ---- helpers ----
+function $(id){ return document.getElementById(id); }
+const BELL_NAMES = R.BELL_NAMES;
+
+// Pick a sensible call set for a method by name/stage.
+function callsFor(entry){
+  if (/grandsire/i.test(entry.name)) return R.grandsireCalls(entry.stage);
+  // Stedman: bobs/singles fall at six-ends; ADR-0007 encodes each double-six as
+  // one of eight compound calls. Built via R.stedmanTriplesComposition (per-six).
+  if (/stedman/i.test(entry.name)) return R.stedmanTriplesCalls();
+  if (entry.classification === 'Principle') return [];
+  return R.plainBobCalls(entry.stage); // Plain Bob & standard surprise: bob 14 / single 1234
+}
+function isStedman(entry){ return /stedman/i.test(entry.name); }
+function callLabel(calls){
+  if (calls.length === 0) return '. = plain (plain touches only — see note)';
+  return calls.map(c => `${c.symbol} = ${c.name}`).join(",  ") + ",  . = plain";
+}
+function methodFor(entry){
+  return R.Method.fromPlaceNotation(entry.notation, entry.stage, entry.name);
+}
+function rowEl(rowStr, opts){
+  opts = opts || {};
+  const wrap = document.createElement('div');
+  wrap.className = 'rowline' + (opts.false ? ' false':'') + (opts.lead ? ' lead':'') + (opts.start ? ' start':'');
+  if (opts.idx !== undefined){
+    const i = document.createElement('span'); i.className='idx'; i.textContent = opts.idx; wrap.appendChild(i);
+  }
+  for (const ch of rowStr){
+    const b = document.createElement('span');
+    b.className = 'bell' + (ch === opts.hl ? ' hl' : ch === opts.hl2 ? ' hl2' : '');
+    b.textContent = ch;
+    wrap.appendChild(b);
+  }
+  return wrap;
+}
+function fillBellSelect(sel, stage, withNone){
+  sel.innerHTML = '';
+  if (withNone){ const o=document.createElement('option'); o.value=''; o.textContent='—'; sel.appendChild(o); }
+  for (let i=0;i<stage;i++){
+    const o=document.createElement('option'); o.value=BELL_NAMES[i]; o.textContent=BELL_NAMES[i]; sel.appendChild(o);
+  }
+}
+
+// ===================== TABS =====================
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  $('view-'+t.dataset.view).classList.add('active');
+}));
+
+// ===================== COMPOSE & PROVE =====================
+(function(){
+  const mSel = $('c-method'), callIn = $('c-calling'), hlSel = $('c-hl');
+  ENTRIES.forEach((e,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=`${e.name} (${e.stage})`; mSel.appendChild(o); });
+
+  const PRESETS = {
+    'Grandsire Triples': [['Plain course','.....'],['SPSPSBP (snap, 97)','s.s.s-.'],['One bob','-....']],
+    'Plain Bob Major':   [['Plain course','.......'],['One bob','-......']],
+    'Plain Bob Minor':   [['Plain course','....'],['One bob','-...']],
+    'Plain Bob Doubles': [['Plain course','...'],['One bob','-..']],
+    'Cambridge Surprise Major': [['Plain course','.......'],['One bob','-......']],
+    'Stedman Triples': [
+      ['Plain course (84)','..............'],
+      ['SLQ — true 84','..bb..bb...bb.'],
+      ['Single ×2 — true 168','s.............s.............'],
+    ],
+  };
+
+  // Note shown under the calling box for methods needing extra explanation.
+  const CALL_NOTE = {
+    'Stedman Triples': 'Stedman is a <b>principle</b> called at <b>six-ends</b>. Type <b>one character per six</b> (<code class="inl">.</code>/<code class="inl">p</code> plain, <code class="inl">-</code>/<code class="inl">b</code> bob, <code class="inl">s</code> single). Internally each double-six lead maps to one of eight compound calls (ADR-0007); a bob makes 5ths and a single 5-6-7ths at the six-end. Verified true against published touches (SLQ=84, single×2=168).',
+  };
+
+  function curEntry(){ return ENTRIES[+mSel.value]; }
+
+  // Map the typed bob alias 'B'/'b' onto this method's actual bob symbol so the
+  // calling box accepts either 'B' or '-' for a bob.
+  function bobSymbol(calls){
+    const bob = calls.find(c => /bob/i.test(c.name));
+    return bob ? bob.symbol : '-';
+  }
+  function normaliseCalling(str, calls){
+    const sym = bobSymbol(calls);
+    return [...str.trim()].map(ch => (ch === 'B' || ch === 'b') ? sym : ch).join('');
+  }
+
+  function syncMethod(){
+    const e = curEntry();
+    const calls = callsFor(e);
+    const unit = isStedman(e) ? 'six' : 'lead';
+    $('c-label').textContent = 'Calling — one char per ' + unit + ' (length = number of characters)';
+    if (isStedman(e)){
+      $('c-callhint').innerHTML = '<span style="color:var(--snap)">'+CALL_NOTE[e.name]+'</span>';
+    } else {
+      const bobNote = calls.length ? ' &nbsp;·&nbsp; <b>B</b> also = Bob' : '';
+      $('c-callhint').innerHTML = 'Calls for this method: <b>'+callLabel(calls)+'</b>'+bobNote;
+    }
+    // presets
+    const pc = $('c-presets'); pc.innerHTML='';
+    (PRESETS[e.name]||[]).forEach(([label,str])=>{
+      const b=document.createElement('button'); b.className='ghost small'; b.textContent=label;
+      b.onclick=()=>{ callIn.value=str; run(); };
+      pc.appendChild(b);
+    });
+    fillBellSelect(hlSel, e.stage, true);
+    // default calling = plain course
+    const def = (PRESETS[e.name] && PRESETS[e.name][0][1]) || '.....';
+    callIn.value = def;
+  }
+
+  function run(){
+    const e = curEntry();
+    $('c-error').textContent='';
+    try {
+      const method = methodFor(e);
+      const stedman = isStedman(e);
+      let comp;
+      if (stedman){
+        const calling = callIn.value.trim();
+        if (calling.length === 0) throw new Error('Enter a per-six calling (e.g. ".............." or "..bb..bb...bb.")');
+        comp = R.stedmanTriplesComposition(calling);
+      } else {
+        const calls = callsFor(e);
+        const calling = normaliseCalling(callIn.value, calls); // length is taken from here
+        if (calling.length === 0) throw new Error('Enter a calling — one character per lead (e.g. "....." or "s.s.s-.")');
+        comp = R.Composition.fromCalling(method, calling, { calls });
+      }
+      const touch = new R.Touch(comp);
+      const rows = touch.toArray();
+      const proof = touch.prove();
+
+      // badges
+      const came = touch.comesToRounds();
+      const snap = touch.isSnapFinish();
+      const bs = $('c-badges'); bs.innerHTML='';
+      const mk=(cls,html)=>{ const d=document.createElement('span'); d.className='badge '+(cls||''); d.innerHTML=html; bs.appendChild(d); };
+      mk(proof.isTrue?'good':'bad', proof.isTrue ? '✓ TRUE' : '✗ FALSE');
+      mk('', '<b>'+touch.changeCount()+'</b> changes');
+      if (stedman) mk('', '<b>'+(touch.changeCount()/6)+'</b> sixes');
+      mk('', '<b>'+touch.leadCount()+'</b> '+(stedman?'double-sixes':'leads'));
+      mk(came?'good':'', came ? 'comes to rounds' : 'does NOT come round');
+      if (snap) mk('snap', stedman ? 'six-end finish' : 'snap finish');
+      if (!proof.isTrue) mk('bad', proof.falseRows.length + ' repeated row(s)');
+
+      // identity panel
+      $('c-idpanel').style.display='block';
+      $('c-key').textContent = comp.key();
+      $('c-hash').textContent = comp.hash();
+      $('c-json').textContent = JSON.stringify(comp.toJSON());
+
+      // false-line set (1-based line numbers from proof)
+      const falseLines = new Set();
+      proof.falseRows.forEach(f => f.lines.forEach(n => falseLines.add(n)));
+
+      // rows — mark six-ends for Stedman (rows ≡ 2 mod 6), else lead boundaries
+      const hl = hlSel.value || undefined;
+      const cont = $('c-rows'); cont.innerHTML='';
+      const leadLen = method.leadLength;
+      rows.forEach((row, i)=>{
+        const isStart = i===0;
+        const isLead = stedman ? (i >= 2 && (i - 2) % 6 === 0) : (i>0 && i % leadLen === 0);
+        cont.appendChild(rowEl(row.toString(), {
+          idx: i, hl,
+          false: falseLines.has(i+1),     // displayed row i ↔ proven line i+1
+          lead: isLead, start: isStart
+        }));
+      });
+      $('c-rowcount').textContent = '— '+rows.length+' rows (start + '+touch.changeCount()+' changes)'
+        + (stedman ? '; bars mark six-ends' : '');
+      $('c-rowspanel').style.display='block';
+    } catch(err){
+      $('c-error').textContent = 'Error: '+err.message;
+      $('c-rowspanel').style.display='none'; $('c-idpanel').style.display='none'; $('c-badges').innerHTML='';
+    }
+  }
+
+  mSel.addEventListener('change', ()=>{ syncMethod(); run(); });
+  $('c-run').addEventListener('click', run);
+  callIn.addEventListener('keydown', e=>{ if(e.key==='Enter') run(); });
+  hlSel.addEventListener('change', run);
+  syncMethod(); run();
+})();
+
+// ===================== METHOD EXPLORER =====================
+(function(){
+  const list = $('e-list');
+  let active = -1;
+
+  function plainCourse(method){
+    const stage = method.stage;
+    const rounds = R.Row.rounds(stage);
+    const heads = [...method.leadHeads()];          // ends with rounds
+    const starts = [rounds, ...heads.slice(0,-1)];
+    const rows = [];
+    for (const s of starts){ for (const r of method.leadRowsNoLH(s)) rows.push(r); }
+    rows.push(rounds);                              // final lead head = rounds
+    return { rows, leads: starts.length, heads };
+  }
+
+  function select(i){
+    active = i; const e = ENTRIES[i];
+    [...list.children].forEach((c,j)=>c.classList.toggle('active', j===i));
+    const method = methodFor(e);
+    const pc = plainCourse(method);
+
+    // info
+    const kv = $('e-kv');
+    kv.innerHTML = '';
+    const add=(k,v)=>{ const dk=document.createElement('div'); dk.className='k'; dk.textContent=k;
+      const dv=document.createElement('div'); dv.className='v'; dv.textContent=v; kv.append(dk,dv); };
+    add('Name', e.name);
+    add('Stage', e.stage + ' bells');
+    add('Classification', e.classification || '—');
+    add('Place notation', e.notation);
+    add('Lead length', method.leadLength + ' changes');
+    add('Lead head', method.leadHead().toString());
+    add('Plain course', pc.leads + ' leads · ' + (pc.rows.length-1) + ' changes');
+    $('e-info').style.display='block';
+    $('e-toolbar').style.display='flex';
+    $('e-coursebadge').textContent = pc.leads + ' leads to come round';
+
+    fillBellSelect($('e-hl'), e.stage, false);
+    fillBellSelect($('e-hl2'), e.stage, true);
+    $('e-hl').value = BELL_NAMES[1];   // trace the 2nd by default
+    renderRows(method, pc);
+
+    $('e-hl').onchange = ()=>renderRows(method, pc);
+    $('e-hl2').onchange = ()=>renderRows(method, pc);
+  }
+
+  function renderRows(method, pc){
+    const hl = $('e-hl').value || undefined;
+    const hl2 = $('e-hl2').value || undefined;
+    const cont = $('e-rows'); cont.innerHTML='';
+    const leadLen = method.leadLength;
+    pc.rows.forEach((row,i)=>{
+      cont.appendChild(rowEl(row.toString(), {
+        idx:i, hl, hl2,
+        lead: i>0 && i%leadLen===0,
+        start: i===0
+      }));
+    });
+    $('e-rowspanel').style.display='block';
+  }
+
+  ENTRIES.forEach((e,i)=>{
+    const d=document.createElement('div'); d.className='methitem';
+    d.innerHTML = `<span class="nm">${e.name}</span><span class="meta">${e.classification||''} · ${e.stage}</span>`;
+    d.onclick=()=>select(i);
+    list.appendChild(d);
+  });
+  select(0);
+})();
+
+// ===================== ROW & CHANGE PLAYGROUND =====================
+(function(){
+  // change applier
+  const stageSel = $('p-stage');
+  [4,5,6,7,8,10,12].forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; stageSel.appendChild(o); });
+  stageSel.value = 8;
+  stageSel.onchange = ()=>{ $('p-row').value = R.Row.rounds(+stageSel.value).toString(); apply(); };
+
+  function apply(){
+    $('p-error').textContent='';
+    const cont = $('p-rows'); cont.innerHTML='';
+    try {
+      const stage = +stageSel.value;
+      let row = R.Row.parse($('p-row').value.trim());
+      if (row.stage !== stage){ $('p-error').textContent = `Start row is stage ${row.stage}, but stage is set to ${stage}.`; return; }
+      const changes = R.PlaceNotation.parse($('p-pn').value.trim(), stage);
+      cont.appendChild(rowEl(row.toString(), { idx:0, start:true }));
+      changes.forEach((ch,i)=>{
+        row = ch.apply(row);
+        cont.appendChild(rowEl(row.toString(), { idx:i+1 }));
+      });
+    } catch(err){ $('p-error').textContent = 'Error: '+err.message; }
+  }
+  $('p-apply').onclick = apply;
+  $('p-pn').addEventListener('keydown',e=>{ if(e.key==='Enter') apply(); });
+  apply();
+
+  // algebra
+  function calc(){
+    $('p-algerror').textContent='';
+    const out = $('p-alg'); out.innerHTML='';
+    try {
+      const a = R.Row.parse($('p-a').value.trim());
+      const b = R.Row.parse($('p-b').value.trim());
+      if (a.stage !== b.stage){ $('p-algerror').textContent = `Stages differ: A is ${a.stage}, B is ${b.stage}.`; return; }
+      const add=(k,v)=>{ const dk=document.createElement('div'); dk.className='k'; dk.textContent=k;
+        const dv=document.createElement('div'); dv.className='v'; dv.textContent=v; out.append(dk,dv); };
+      add('A', a.toString());
+      add('B', b.toString());
+      add('A ∘ B (compose)', a.compose(b).toString());
+      add('B ∘ A (compose)', b.compose(a).toString());
+      add('A⁻¹ (inverse)', a.inverse().toString());
+      add('A sign', a.sign() === 1 ? '+1 (even)' : '−1 (odd)');
+      add('A is rounds?', a.isRounds() ? 'yes' : 'no');
+      add('A even permutation?', a.isEvenPermutation() ? 'yes' : 'no');
+    } catch(err){ $('p-algerror').textContent = 'Error: '+err.message; }
+  }
+  $('p-calc').onclick = calc;
+  calc();
+})();
+</script>
+</body>
+</html>
