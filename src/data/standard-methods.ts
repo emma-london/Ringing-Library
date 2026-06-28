@@ -1,8 +1,8 @@
 import { Stage } from '../bell.js';
 import { Change } from '../change.js';
-import { Composition, CallDefinition, CallingEntry } from '../composition.js';
+import { Composition, type CallDefinition, type CallingEntry } from '../composition.js';
 import { Method } from '../method.js';
-import { MethodLibraryEntry } from '../method-library.js';
+import { type MethodLibraryEntry } from '../method-library.js';
 
 /**
  * A curated set of real methods, with place notations verified against the

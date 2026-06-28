@@ -1,4 +1,4 @@
-import { Bell, Stage, bellFromChar, bellToChar } from './bell.js';
+import { type Bell, Stage, bellFromChar, bellToChar } from './bell.js';
 import { Row } from './row.js';
 
 /**

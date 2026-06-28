@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ringing Library — Test Bench</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1e222b;
+    --line: #2a2f3a;
+    --text: #e6e9ef;
+    --muted: #9aa3b2;
+    --accent: #5b8cff;
+    --accent-2: #7c5cff;
+    --good: #3ecf8e;
+    --good-bg: #123a2b;
+    --bad: #ff6b6b;
+    --bad-bg: #3a1414;
+    --snap: #ffcc66;
+    --bell: #232936;
+    --hl: #5b8cff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 650; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  .tabs { display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+  .tab {
+    padding: 11px 16px; cursor: pointer; color: var(--muted);
+    border-bottom: 2px solid transparent; user-select: none; font-weight: 550;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  main { padding: 22px 24px; max-width: 1100px; }
+  .view { display: none; }
+  .view.active { display: block; }
+  .row-controls { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 18px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .02em; }
+  select, input[type=text], input[type=number] {
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 7px; padding: 8px 10px; font: inherit; min-width: 120px;
+  }
+  input[type=text].mono, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  button {
+    background: var(--accent); color: #fff; border: 0; border-radius: 7px;
+    padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer;
+  }
+  button:hover { filter: brightness(1.08); }
+  button.ghost { background: var(--panel-2); border: 1px solid var(--line); color: var(--text); }
+  button.small { padding: 5px 10px; font-size: 12px; }
+  .hint { color: var(--muted); font-size: 12.5px; margin: -6px 0 14px; }
+  .badges { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 16px; }
+  .badge {
+    padding: 6px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+    background: var(--panel-2); border: 1px solid var(--line);
+  }
+  .badge b { font-weight: 700; }
+  .badge.good { background: var(--good-bg); border-color: #1f6b4d; color: var(--good); }
+  .badge.bad { background: var(--bad-bg); border-color: #7a2a2a; color: var(--bad); }
+  .badge.snap { background: #3a3214; border-color: #6b5a1f; color: var(--snap); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 18px; }
+  .panel h3 { margin: 0 0 12px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  /* rows grid */
+  /* Multi-column so rows read top-to-bottom down each column, then across. */
+  .rows { column-width: 190px; column-gap: 18px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .rowline {
+    display: flex; align-items: center; gap: 1px; padding: 1px 6px; border-radius: 5px;
+    background: var(--panel-2); position: relative;
+    margin-bottom: 4px; break-inside: avoid; -webkit-column-break-inside: avoid;
+  }
+  .rowline .idx { color: var(--muted); font-size: 11px; width: 34px; text-align: right; margin-right: 6px; }
+  .rowline.false { background: var(--bad-bg); outline: 1px solid #7a2a2a; }
+  .rowline.lead { box-shadow: inset 2px 0 0 var(--accent-2); }
+  .rowline.start { box-shadow: inset 2px 0 0 var(--good); }
+  .bell { display: inline-block; width: 15px; text-align: center; color: var(--text); }
+  .bell.hl { color: var(--bg); background: var(--hl); border-radius: 3px; font-weight: 700; }
+  .bell.hl2 { color: var(--bg); background: var(--snap); border-radius: 3px; font-weight: 700; }
+  .methlist { display: flex; flex-direction: column; gap: 4px; }
+  .methitem {
+    padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer;
+    background: var(--panel-2); display: flex; justify-content: space-between; gap: 10px;
+  }
+  .methitem:hover { border-color: var(--accent); }
+  .methitem.active { border-color: var(--accent); background: #1b2740; }
+  .methitem .nm { font-weight: 600; }
+  .methitem .meta { color: var(--muted); font-size: 12px; }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; align-items: center; }
+  .kv .k { color: var(--muted); font-size: 12.5px; }
+  .kv .v { font-family: ui-monospace, Menlo, monospace; word-break: break-all; }
+  .two-col { display: grid; grid-template-columns: 260px 1fr; gap: 18px; }
+  .err { color: var(--bad); font-size: 13px; margin-top: 8px; white-space: pre-wrap; }
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  code.inl { background: var(--panel-2); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; }
+  @media (max-width: 720px){ .two-col{ grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>🔔 Ringing Library — Test Bench</h1>
+  <span class="sub">A scratch UI over the Phase&nbsp;3 core: compose &amp; prove touches, explore methods, play with row algebra.</span>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-view="compose">Compose &amp; Prove</div>
+  <div class="tab" data-view="explore">Method Explorer</div>
+  <div class="tab" data-view="play">Row &amp; Change Playground</div>
+</div>
+
+<main>
+  <!-- ============ COMPOSE & PROVE ============ -->
+  <section class="view active" id="view-compose">
+    <div class="row-controls">
+      <div class="field">
+        <label>Method</label>
+        <select id="c-method"></select>
+      </div>
+      <div class="field" style="flex:1; min-width:220px">
+        <label id="c-label">Calling — one char per lead (length = number of characters)</label>
+        <input type="text" class="mono" id="c-calling" value="....." />
+      </div>
+      <button id="c-run">Ring &amp; Prove</button>
+    </div>
+    <div class="hint" id="c-callhint"></div>
+
+    <div class="toolbar">
+      <span class="badge ghost">Presets:</span>
+      <span id="c-presets"></span>
+      <span style="flex:1"></span>
+      <label class="field" style="flex-direction:row; align-items:center; gap:6px">
+        <span style="color:var(--muted); font-size:12px">Highlight bell</span>
+        <select id="c-hl" style="min-width:70px"></select>
+      </label>
+    </div>
+
+    <div id="c-error" class="err"></div>
+    <div id="c-badges" class="badges"></div>
+
+    <div class="panel" id="c-idpanel" style="display:none">
+      <h3>Composition identity (serialization)</h3>
+      <div class="kv">
+        <div class="k">key()</div><div class="v" id="c-key"></div>
+        <div class="k">hash()</div><div class="v" id="c-hash"></div>
+        <div class="k">toJSON()</div><div class="v mono" id="c-json" style="font-size:12px"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="c-rowspanel" style="display:none">
+      <h3>Rows <span id="c-rowcount" style="text-transform:none; color:var(--muted)"></span></h3>
+      <div class="rows" id="c-rows"></div>
+    </div>
+  </section>
+
+  <!-- ============ METHOD EXPLORER ============ -->
+  <section class="view" id="view-explore">
+    <div class="two-col">
+      <div>
+        <h3 style="color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.05em">Library</h3>
+        <div class="methlist" id="e-list"></div>
+      </div>
+      <div>
+        <div class="panel" id="e-info" style="display:none">
+          <h3>Method</h3>
+          <div class="kv" id="e-kv"></div>
+        </div>
+        <div class="toolbar" id="e-toolbar" style="display:none">
+          <label class="field" style="flex-direction:row; align-items:center; gap:6px">
+            <span style="color:var(--muted); font-size:12px">Trace bell (blue line)</span>
+            <select id="e-hl" style="min-width:70px"></select>
+          </label>
+          <label class="field" style="flex-direction:row; align-items:center; gap:6px">
+            <span style="color:var(--muted); font-size:12px">Also trace</span>
+            <select id="e-hl2" style="min-width:70px"></select>
+          </label>
+          <span class="badge" id="e-coursebadge"></span>
+        </div>
+        <div class="panel" id="e-rowspanel" style="display:none">
+          <h3>Plain course</h3>
+          <div class="rows" id="e-rows"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ROW & CHANGE PLAYGROUND ============ -->
+  <section class="view" id="view-play">
+    <div class="panel">
+      <h3>Apply a change to a row</h3>
+      <div class="row-controls" style="margin-bottom:6px">
+        <div class="field">
+          <label>Stage</label>
+          <select id="p-stage"></select>
+        </div>
+        <div class="field">
+          <label>Start row</label>
+          <input type="text" class="mono" id="p-row" value="12345678" style="width:160px" />
+        </div>
+        <div class="field" style="flex:1; min-width:200px">
+          <label>Place-notation changes (e.g. <code class="inl">x.18.x.18</code> or <code class="inl">-1-1</code>)</label>
+          <input type="text" class="mono" id="p-pn" value="x.18.x.18.x.18.x.18" />
+        </div>
+        <button id="p-apply">Apply</button>
+      </div>
+      <div class="hint">Each change is applied in turn from the start row. <code class="inl">x</code>/<code class="inl">-</code> = cross, digits = places made.</div>
+      <div id="p-error" class="err"></div>
+      <div class="rows" id="p-rows" style="margin-top:8px"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Row algebra</h3>
+      <div class="row-controls" style="margin-bottom:6px">
+        <div class="field"><label>Row A</label><input type="text" class="mono" id="p-a" value="13524" style="width:140px" /></div>
+        <div class="field"><label>Row B</label><input type="text" class="mono" id="p-b" value="21345" style="width:140px" /></div>
+        <button id="p-calc" class="ghost">Compute</button>
+      </div>
+      <div class="hint">Compose, invert, and parity for permutations. Both rows must be the same stage.</div>
+      <div id="p-algerror" class="err"></div>
+      <div class="kv" id="p-alg" style="margin-top:6px"></div>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="/main.ts"></script>
+</body>
+</html>

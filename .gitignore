@@ -5,6 +5,10 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Vite app build output (app/) and cache (ADR-0010)
+app/dist/
+.vite/
+
 # Logs & debug
 *.log
 npm-debug.log*

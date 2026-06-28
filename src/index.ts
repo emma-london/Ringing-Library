@@ -1,4 +1,5 @@
-export { Bell, Stage, BELL_NAMES, bellToChar, bellFromChar } from './bell.js';
+export { Stage, BELL_NAMES, bellToChar, bellFromChar } from './bell.js';
+export type { Bell } from './bell.js';
 export { Row } from './row.js';
 export { Change } from './change.js';
 export { PlaceNotation } from './place-notation.js';

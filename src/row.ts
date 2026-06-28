@@ -1,4 +1,4 @@
-import { Bell, Stage, BELL_NAMES, bellFromChar, bellToChar } from './bell.js';
+import { type Bell, Stage, BELL_NAMES, bellFromChar, bellToChar } from './bell.js';
 import type { Change } from './change.js';
 
 /**
@@ -174,4 +174,4 @@ export class Row {
 }
 
 // Re-export Bell/Stage so consumers can import from a single place if desired
-export { Bell, Stage, bellFromChar, bellToChar, BELL_NAMES };
+export { type Bell, Stage, bellFromChar, bellToChar, BELL_NAMES };

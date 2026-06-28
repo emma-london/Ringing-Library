@@ -8,10 +8,14 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "app:dev": "vite app",
+    "app:build": "vite build app",
+    "app:preview": "vite preview app"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
+    "vite": "^5.4.0",
     "vitest": "^1.6.0"
   }
 }
