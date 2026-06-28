@@ -107,6 +107,18 @@
   .err { color: var(--bad); font-size: 13px; margin-top: 8px; white-space: pre-wrap; }
   .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
   code.inl { background: var(--panel-2); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; }
+  /* search results */
+  .complist { display: flex; flex-direction: column; gap: 6px; }
+  .compitem {
+    display: flex; align-items: center; gap: 14px; padding: 8px 12px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); cursor: pointer;
+  }
+  .compitem:hover { border-color: var(--accent); background: #1b2740; }
+  .compitem .len { color: var(--good); min-width: 70px; font-weight: 600; }
+  .compitem .lds { color: var(--muted); font-size: 12px; min-width: 66px; }
+  .compitem .cl { flex: 1; font-family: ui-monospace, Menlo, Consolas, monospace; word-break: break-all; }
+  .compitem .snapb { color: var(--snap); font-size: 11px; font-weight: 700; letter-spacing: .03em; }
+  .compitem .open { color: var(--accent); font-size: 12px; white-space: nowrap; }
   @media (max-width: 720px){ .two-col{ grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -118,6 +130,7 @@
 
 <div class="tabs">
   <div class="tab active" data-view="compose">Compose &amp; Prove</div>
+  <div class="tab" data-view="search">Search</div>
   <div class="tab" data-view="explore">Method Explorer</div>
   <div class="tab" data-view="play">Row &amp; Change Playground</div>
 </div>
@@ -163,6 +176,45 @@
     <div class="panel" id="c-rowspanel" style="display:none">
       <h3>Rows <span id="c-rowcount" style="text-transform:none; color:var(--muted)"></span></h3>
       <div class="rows" id="c-rows"></div>
+    </div>
+  </section>
+
+  <!-- ============ SEARCH ============ -->
+  <section class="view" id="view-search">
+    <div class="row-controls">
+      <div class="field">
+        <label>Method</label>
+        <select id="s-method"></select>
+      </div>
+      <div class="field">
+        <label>Max length (changes)</label>
+        <input type="number" id="s-maxchanges" value="250" min="14" max="250" style="width:130px" />
+      </div>
+      <div class="field">
+        <label>Calls</label>
+        <select id="s-calls" style="min-width:140px">
+          <option value="both">Bobs + singles</option>
+          <option value="bobs">Bobs only</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Max results</label>
+        <input type="number" id="s-limit" value="200" min="1" max="1000" style="width:110px" />
+      </div>
+      <button id="s-run">Search</button>
+    </div>
+    <div class="hint">
+      Finds <b>true compositions that come round</b>, shortest first, using the method's calls at each lead.
+      This is a deliberately <b>bounded</b> Phase&nbsp;3 searcher (ADR-0011): a hard length ceiling of 250 changes
+      and a search budget keep it quick. The full search engine — and longer lengths — come in Phase&nbsp;4.
+    </div>
+    <div id="s-error" class="err"></div>
+    <div id="s-status" class="hint" style="margin-top:2px"></div>
+    <div id="s-badges" class="badges"></div>
+
+    <div class="panel" id="s-resultspanel" style="display:none">
+      <h3>True compositions <span id="s-rescount" style="text-transform:none; color:var(--muted)"></span></h3>
+      <div class="complist" id="s-results"></div>
     </div>
   </section>
 

@@ -8,6 +8,9 @@ import * as R from '../src/index.js';
 const lib = new R.MethodLibrary(R.STANDARD_METHODS);
 const ENTRIES = R.STANDARD_METHODS;
 
+// Tiny cross-tab bus so the Search tab can hand a found calling to Compose & Prove.
+const bus: { loadCompose?: (entryIdx: number, calling: string) => void } = {};
+
 // ---- helpers ----
 function $(id){ return document.getElementById(id); }
 const BELL_NAMES = R.BELL_NAMES;
@@ -191,6 +194,121 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
   callIn.addEventListener('keydown', e=>{ if(e.key==='Enter') run(); });
   hlSel.addEventListener('change', run);
   syncMethod(); run();
+
+  // Let the Search tab drop a found calling straight into Compose & Prove.
+  bus.loadCompose = (entryIdx, calling) => {
+    mSel.value = String(entryIdx);
+    syncMethod();          // resets the calling to the method default…
+    callIn.value = calling; // …so set the real calling afterwards
+    run();
+  };
+})();
+
+// ===================== SEARCH =====================
+(function(){
+  const mSel = $('s-method'), maxIn = $('s-maxchanges'), callsSel = $('s-calls'),
+        limIn = $('s-limit'), runBtn = $('s-run');
+
+  // Only lead-end-called methods are in scope for the bounded searcher (ADR-0011);
+  // Stedman's six-based calling (ADR-0007) is left to the Phase 4 engine.
+  const SEARCHABLE = ENTRIES
+    .map((e,i)=>({ e, i }))
+    .filter(({e}) => e.classification !== 'Principle' && !/stedman/i.test(e.name));
+
+  SEARCHABLE.forEach(({e,i})=>{
+    const o=document.createElement('option'); o.value=String(i); o.textContent=`${e.name} (${e.stage})`;
+    mSel.appendChild(o);
+  });
+
+  function curEntry(){ return ENTRIES[+mSel.value]; }
+
+  // The call set to search over, honouring the bobs-only / bobs+singles toggle.
+  function searchCalls(entry){
+    const all = callsFor(entry);
+    if (callsSel.value === 'bobs') return all.filter(c => /bob/i.test(c.name));
+    return all;
+  }
+
+  function render(report, entry, calls){
+    const cont = $('s-results'); cont.innerHTML='';
+    const bobSym = (calls.find(c => /bob/i.test(c.name))||{}).symbol || '-';
+    const singleSym = (calls.find(c => /single/i.test(c.name))||{}).symbol || 's';
+
+    report.results.forEach(r=>{
+      const it=document.createElement('div'); it.className='compitem';
+      const len=document.createElement('span'); len.className='len'; len.innerHTML=`<b>${r.changes}</b> ch`;
+      const lds=document.createElement('span'); lds.className='lds'; lds.textContent=`${r.leads} leads`;
+      const cl=document.createElement('span'); cl.className='cl'; cl.textContent = r.calling === '' ? '(plain course)' : r.calling;
+      it.append(len, lds, cl);
+      if (r.snap){ const s=document.createElement('span'); s.className='snapb'; s.textContent='SNAP'; it.appendChild(s); }
+      const op=document.createElement('span'); op.className='open'; op.textContent='open in Compose ›'; it.appendChild(op);
+      it.title = 'Open this calling in Compose & Prove';
+      it.onclick = ()=>{
+        bus.loadCompose && bus.loadCompose(+mSel.value, r.calling);
+        document.querySelector('.tab[data-view="compose"]').click();
+      };
+      cont.appendChild(it);
+    });
+
+    // count + truth note
+    const ne = r => r.snap ? 0 : 1;
+    $('s-rescount').textContent =
+      `— ${report.results.length} shown` +
+      (report.truncated ? ' (more exist — raise the limit or narrow the calls)' : ' (complete within the length limit)') +
+      `; bob ${bobSym}` + (calls.some(c=>/single/i.test(c.name)) ? `, single ${singleSym}` : '') + ', . plain';
+    $('s-resultspanel').style.display='block';
+
+    const bs=$('s-badges'); bs.innerHTML='';
+    const mk=(cls,html)=>{ const d=document.createElement('span'); d.className='badge '+(cls||''); d.innerHTML=html; bs.appendChild(d); };
+    if (report.results.length===0){
+      mk('', 'No true come-round touches found within the limit');
+    } else {
+      const shortest = report.results[0];
+      mk('good', `shortest: <b>${shortest.changes}</b> changes`);
+      const snaps = report.results.filter(r=>r.snap).length;
+      if (snaps) mk('snap', `${snaps} snap finish${snaps>1?'es':''}`);
+    }
+  }
+
+  function run(){
+    $('s-error').textContent='';
+    const entry = curEntry();
+    const calls = searchCalls(entry);
+    let maxChanges = Math.min(250, Math.max(14, parseInt(maxIn.value,10) || 250));
+    let limit = Math.min(1000, Math.max(1, parseInt(limIn.value,10) || 200));
+    maxIn.value = String(maxChanges); limIn.value = String(limit);
+
+    $('s-status').textContent = 'Searching…';
+    $('s-resultspanel').style.display='none'; $('s-badges').innerHTML='';
+    runBtn.disabled = true;
+
+    // Defer so the "Searching…" note paints before the (synchronous) search runs.
+    setTimeout(()=>{
+      try {
+        const method = methodFor(entry);
+        const t0 = performance.now();
+        const report = R.searchTouches({ method, calls, maxChanges, limit });
+        const ms = Math.round(performance.now() - t0);
+        render(report, entry, calls);
+        $('s-status').textContent =
+          `Searched to ${report.leadsSearched} leads in ${ms} ms` +
+          (report.truncated ? ' — stopped at the result limit or search budget.' : '.');
+      } catch(err){
+        $('s-error').textContent = 'Error: '+err.message;
+        $('s-status').textContent='';
+      } finally {
+        runBtn.disabled = false;
+      }
+    }, 20);
+  }
+
+  runBtn.addEventListener('click', run);
+  callsSel.addEventListener('change', run);
+  [maxIn, limIn].forEach(el => el.addEventListener('keydown', e=>{ if(e.key==='Enter') run(); }));
+  // Default to Grandsire Triples if present (its snaps make the demo interesting).
+  const gIdx = SEARCHABLE.findIndex(({e}) => /grandsire/i.test(e.name));
+  if (gIdx >= 0) mSel.value = String(SEARCHABLE[gIdx].i);
+  run();
 })();
 
 // ===================== METHOD EXPLORER =====================
