@@ -15,6 +15,11 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    // Dedicated port so this app never collides with other local Vite servers
+    // (e.g. CallChangeTrainer on 5173). strictPort makes Vite fail loudly rather
+    // than silently drifting to another port.
+    port: 5180,
+    strictPort: true,
     fs: { allow: ['..'] },
   },
 });
