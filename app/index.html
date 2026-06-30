@@ -89,6 +89,13 @@
   .rowline.lead { box-shadow: inset 2px 0 0 var(--accent-2); }
   .rowline.start { box-shadow: inset 2px 0 0 var(--good); }
   .bell { display: inline-block; width: 15px; text-align: center; color: var(--text); }
+  /* bob/single indicator at a call point, shown to the right of the row */
+  .rowline .callmark {
+    margin-left: 8px; min-width: 13px; text-align: center; font-weight: 800;
+    border-radius: 4px; padding: 0 3px;
+  }
+  .rowline .callmark.bob { color: var(--snap); background: rgba(255,204,102,.16); }
+  .rowline .callmark.single { color: var(--snap); background: rgba(255,204,102,.16); }
   .bell.hl { color: var(--bg); background: var(--hl); border-radius: 3px; font-weight: 700; }
   .bell.hl2 { color: var(--bg); background: var(--snap); border-radius: 3px; font-weight: 700; }
   .methlist { display: flex; flex-direction: column; gap: 4px; }

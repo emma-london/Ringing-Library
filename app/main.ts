@@ -52,6 +52,13 @@ function rowEl(rowStr, opts){
     b.textContent = ch;
     wrap.appendChild(b);
   }
+  if (opts.mark){
+    const m = document.createElement('span');
+    m.className = 'callmark' + (opts.mark === 'S' ? ' single' : ' bob');
+    m.textContent = opts.mark;
+    m.title = opts.mark === 'S' ? 'single' : 'bob';
+    wrap.appendChild(m);
+  }
   return wrap;
 }
 function fillBellSelect(sel, stage, withNone){
@@ -177,21 +184,41 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
       const falseLines = new Set();
       proof.falseRows.forEach(f => f.lines.forEach(n => falseLines.add(n)));
 
+      // Where the bobs/singles fall, as a row-index → symbol map ('-' bob, 'S' single).
+      // Lead-end methods: a call at lead L lands on that lead's end row (L+1)·leadLen.
+      // Stedman: six k's call is made at its six-end, displayed at row 2 + 6k.
+      const leadLen = method.leadLength;
+      const callMark = new Map();
+      if (stedman){
+        [...callIn.value.trim()].forEach((ch, k)=>{
+          const c = ch.toLowerCase();
+          if (c === '.' || c === 'p') return;          // plain six
+          callMark.set(2 + 6*k, c === 's' ? 'S' : '-'); // bob '-' (b/-), single 'S'
+        });
+      } else {
+        comp.calling.forEach(entry=>{
+          const def = comp.callBySymbol(entry.call);
+          const isSingle = def ? /single/i.test(def.name) : entry.call.toLowerCase() === 's';
+          callMark.set((entry.lead + 1) * leadLen, isSingle ? 'S' : '-');
+        });
+      }
+
       // rows — mark six-ends for Stedman (rows ≡ 2 mod 6), else lead boundaries
       const hl = hlSel.value || undefined;
       const cont = $('c-rows'); cont.innerHTML='';
-      const leadLen = method.leadLength;
       rows.forEach((row, i)=>{
         const isStart = i===0;
         const isLead = stedman ? (i >= 2 && (i - 2) % 6 === 0) : (i>0 && i % leadLen === 0);
         cont.appendChild(rowEl(row.toString(), {
           idx: i, hl,
           false: falseLines.has(i+1),     // displayed row i ↔ proven line i+1
-          lead: isLead, start: isStart
+          lead: isLead, start: isStart,
+          mark: callMark.get(i)           // '-' bob / 'S' single at a call point
         }));
       });
       $('c-rowcount').textContent = '— '+rows.length+' rows (start + '+touch.changeCount()+' changes)'
-        + (stedman ? '; bars mark six-ends' : '');
+        + (stedman ? '; bars mark six-ends' : '')
+        + (callMark.size ? '; -/S mark bobs/singles' : '');
       $('c-rowspanel').style.display='block';
     } catch(err){
       $('c-error').textContent = 'Error: '+err.message;
