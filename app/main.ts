@@ -11,6 +11,13 @@ const ENTRIES = R.STANDARD_METHODS;
 // Tiny cross-tab bus so the Search tab can hand a found calling to Compose & Prove.
 const bus: { loadCompose?: (entryIdx: number, calling: string) => void } = {};
 
+// Methods in display order: by stage ascending, then name. The original index
+// (`i`) stays the canonical id used everywhere (option values, ENTRIES lookups),
+// so sorting the *display* never disturbs the lookups.
+const SORTED_METHODS = ENTRIES
+  .map((e, i) => ({ e, i }))
+  .sort((a, b) => a.e.stage - b.e.stage || a.e.name.localeCompare(b.e.name));
+
 // ---- helpers ----
 function $(id){ return document.getElementById(id); }
 const BELL_NAMES = R.BELL_NAMES;
@@ -66,14 +73,17 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
 // ===================== COMPOSE & PROVE =====================
 (function(){
   const mSel = $('c-method'), callIn = $('c-calling'), hlSel = $('c-hl');
-  ENTRIES.forEach((e,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=`${e.name} (${e.stage})`; mSel.appendChild(o); });
+  SORTED_METHODS.forEach(({e,i})=>{ const o=document.createElement('option'); o.value=String(i); o.textContent=`${e.name} (${e.stage})`; mSel.appendChild(o); });
 
   const PRESETS = {
     'Grandsire Triples': [['Plain course','.....'],['SPSPSBP (snap, 97)','s.s.s-.'],['One bob','-....']],
+    'Grandsire Doubles': [['Plain course (30)','...'],['One bob','-..']],
     'Plain Bob Major':   [['Plain course','.......'],['One bob','-......']],
+    'Plain Bob Triples': [['Plain course (84)','......'],['One bob','-.....']],
     'Plain Bob Minor':   [['Plain course','....'],['One bob','-...']],
     'Plain Bob Doubles': [['Plain course','...'],['One bob','-..']],
     'Cambridge Surprise Major': [['Plain course','.......'],['One bob','-......']],
+    'Kent Treble Bob Minor': [['Plain course (120)','.....'],['One bob','-....']],
     'Stedman Triples': [
       ['Plain course (84)','..............'],
       ['SLQ — true 84','..bb..bb...bb.'],
@@ -212,7 +222,7 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
   // Lead-end methods go through searchTouches; Stedman's six-based calling goes
   // through searchStedmanTouches (ADR-0012). Both are in scope for the bounded
   // searcher now — every method the library can prove can also be searched.
-  const SEARCHABLE = ENTRIES.map((e,i)=>({ e, i }));
+  const SEARCHABLE = SORTED_METHODS;
 
   SEARCHABLE.forEach(({e,i})=>{
     const o=document.createElement('option'); o.value=String(i); o.textContent=`${e.name} (${e.stage})`;
@@ -352,7 +362,9 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
 
   function select(i){
     active = i; const e = ENTRIES[i];
-    [...list.children].forEach((c,j)=>c.classList.toggle('active', j===i));
+    // Highlight by the item's stored method index, not its position — the list is
+    // sorted for display, so child order no longer matches the ENTRIES index.
+    [...list.children].forEach(c => c.classList.toggle('active', +c.dataset.idx === i));
     const method = methodFor(e);
     const pc = plainCourse(method);
 
@@ -396,13 +408,14 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
     $('e-rowspanel').style.display='block';
   }
 
-  ENTRIES.forEach((e,i)=>{
+  SORTED_METHODS.forEach(({e,i})=>{
     const d=document.createElement('div'); d.className='methitem';
+    d.dataset.idx = String(i);
     d.innerHTML = `<span class="nm">${e.name}</span><span class="meta">${e.classification||''} · ${e.stage}</span>`;
     d.onclick=()=>select(i);
     list.appendChild(d);
   });
-  select(0);
+  select(SORTED_METHODS[0].i);
 })();
 
 // ===================== ROW & CHANGE PLAYGROUND =====================

@@ -21,6 +21,16 @@ export const STANDARD_METHODS: MethodLibraryEntry[] = [
     classification: 'Place', // approximate; Grandsire predates the modern scheme
     leadHead: '1253746',
   },
+  // Grandsire Doubles — the 5-bell Grandsire (lie behind is `5`). Lead 10 changes,
+  // plain course 3 leads / 30 changes, lead head 12534. Verified against complib
+  // (method/10587). Calls are the stage-independent Grandsire bob `3.1` / single `3.123`.
+  {
+    name: 'Grandsire Doubles',
+    stage: 5,
+    notation: '3.1.5.1.5.1.5.1.5.1',
+    classification: 'Place', // as for Grandsire Triples — predates the modern scheme
+    leadHead: '12534',
+  },
   {
     name: 'Plain Bob Major',
     stage: 8,
@@ -40,12 +50,33 @@ export const STANDARD_METHODS: MethodLibraryEntry[] = [
     notation: '&5.1.5.1.5,125',
     classification: 'Bob',
   },
+  // Plain Bob Triples — lead 14 changes, plain course 6 leads / 84 changes, lead
+  // head 1352746. Verified against complib (method/12399). Calls: bob `14` / single
+  // `1234` (plainBobCalls), with the tenor `7` implied externally on stage 7.
+  {
+    name: 'Plain Bob Triples',
+    stage: 7,
+    notation: '&7.1.7.1.7.1.7,127',
+    classification: 'Bob',
+    leadHead: '1352746',
+  },
   {
     name: 'Cambridge Surprise Major',
     stage: 8,
     notation: '&-38-14-1258-36-14-58-16-78,12',
     classification: 'Surprise',
     leadHead: '15738264',
+  },
+  // Kent Treble Bob Minor — the classic treble-dodging minor method (the "Kent
+  // places" 34/34 give the slow-bell work). Lead 24 changes, plain course 5 leads
+  // / 120 changes, lead head 142635. Verified against complib (method/26082). A
+  // sixth-place method; lead-end calls are bob `14` / single `1234` (plainBobCalls).
+  {
+    name: 'Kent Treble Bob Minor',
+    stage: 6,
+    notation: '&34-34.16-12-16-12-16,16',
+    classification: 'Treble Bob',
+    leadHead: '142635',
   },
   // Stedman Triples — a *principle* (every bell does the same work; no fixed
   // hunt bell), built from alternating slow/quick "sixes". It is modelled here
