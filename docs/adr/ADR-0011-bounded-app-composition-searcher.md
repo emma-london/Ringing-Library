@@ -3,7 +3,9 @@
 - **Status:** Accepted
 - **Date:** 2026-06-28
 - **Deciders:** Project
-- **Related:** [ADR-0003](ADR-0003-phasing-and-roadmap.md) (phasing — searcher deferred to Phase 4; "no throwaway TS searcher"); [ADR-0001](ADR-0001-cross-platform-compute-architecture.md) (the WASM search engine + verify-on-client invariant); [ADR-0002](ADR-0002-description-vs-execution.md) / [ADR-0005](ADR-0005-composition-identity-and-proof-result.md) (`Composition` / `Touch` / `Prover` / `Proof`); [ADR-0006](ADR-0006-call-model-and-come-round.md) (lead-end call model, come-round at every row); [ADR-0007](ADR-0007-stedman-and-six-based-calling.md) (six-based calling); [ADR-0010](ADR-0010-test-bench-deployment.md) (the `app/` test bench)
+- **Related:** [ADR-0003](ADR-0003-phasing-and-roadmap.md) (phasing — searcher deferred to Phase 4; "no throwaway TS searcher"); [ADR-0001](ADR-0001-cross-platform-compute-architecture.md) (the WASM search engine + verify-on-client invariant); [ADR-0002](ADR-0002-description-vs-execution.md) / [ADR-0005](ADR-0005-composition-identity-and-proof-result.md) (`Composition` / `Touch` / `Prover` / `Proof`); [ADR-0006](ADR-0006-call-model-and-come-round.md) (lead-end call model, come-round at every row); [ADR-0007](ADR-0007-stedman-and-six-based-calling.md) (six-based calling); [ADR-0010](ADR-0010-test-bench-deployment.md) (the `app/` test bench); [ADR-0012](ADR-0012-stedman-in-bounded-searcher.md) (**brings Stedman into this searcher — supersedes the §5 Stedman exclusion below**)
+
+> **Note (2026-06-28):** the **Stedman-out-of-scope exclusion** in this ADR (§5 and the matching Consequences bullet) is **superseded by [ADR-0012](ADR-0012-stedman-in-bounded-searcher.md)**, which adds a six-based sibling (`searchStedmanTouches`) and includes Stedman on the Search tab. The rest of this ADR — the bounded/naive/disposable-body framing for the lead-end searcher — still stands.
 
 ## Context
 
@@ -31,7 +33,7 @@ Add a **bounded, capped, shortest-first composition searcher** to the app in Pha
 
 4. **Verification rides the project's existing discipline.** Truth carries the weight (CLAUDE.md): every returned touch is independently re-proved by `Touch.prove()` in the tests, and the searcher's exhaustive output is **live-diffed against the C++ `grandsire_solver` prototype** — exact per-length counts (lead-end vs snap) and exact callings up to 6 leads, 83 touches to 10 leads — exactly the "validated by live diff against the C++ prototypes" stance ADR-0003 sets for the engine.
 
-5. **Scope is the lead-end call model (ADR-0006):** Grandsire and the Plain Bob / surprise family. **Stedman's six-based calling (ADR-0007) is out of scope** for this bounded searcher and is left to Phase 4; the Search tab omits it and `searchTouches` rejects multi-character (compound) call symbols rather than silently mis-rendering them.
+5. **Scope is the lead-end call model (ADR-0006):** Grandsire and the Plain Bob / surprise family. **Stedman's six-based calling (ADR-0007) is out of scope** for this bounded searcher and is left to Phase 4; the Search tab omits it and `searchTouches` rejects multi-character (compound) call symbols rather than silently mis-rendering them. *(**Superseded by [ADR-0012](ADR-0012-stedman-in-bounded-searcher.md)**: Stedman is now searched per six via `searchStedmanTouches`, where the calls are single-character and the compound-symbol problem does not arise. `searchTouches` itself is unchanged and still lead-end-only.)*
 
 **Acknowledged explicitly (the deciders' caveat):** this is bounded work we accept will be **re-thought in Phase 4**, and the *body* of `src/search.ts` is expected to be replaced by the WASM engine. That is acceptable precisely because the throwaway is confined to a naive DFS behind a stable interface — not a parallel truth authority. If Phase 4 finds itself preserving or extending this DFS rather than replacing it, that is a signal to revisit this ADR.
 
@@ -61,5 +63,5 @@ Add a **bounded, capped, shortest-first composition searcher** to the app in Pha
 
 - There is **deliberate, bounded overlap** with Phase 4: the engine will supersede `src/search.ts`'s body. Tracked here so it is not silent. When the WASM engine lands, replace the DFS behind the same interface and update this ADR's status accordingly (likely *Superseded by* the Phase 4 search ADR).
 - The searcher is **not complete and not for long lengths** — by design. Results past the caps are not shown (`truncated` flags this). Anyone wanting completeness or peal-length search must wait for Phase 4.
-- **Stedman is unsupported** in search until the six-based calling path exists (ADR-0007 successor / Phase 4).
+- **Stedman is unsupported** in search until the six-based calling path exists (ADR-0007 successor / Phase 4). *(Resolved by [ADR-0012](ADR-0012-stedman-in-bounded-searcher.md): the six-based path now exists as `searchStedmanTouches`, ahead of Phase 4, on the same bounded terms.)*
 - Performance is "fine for a test bench" (sub-second to a few seconds within the caps), not engineered; the node budget is the backstop. It is not a basis for any throughput expectation of the real engine.

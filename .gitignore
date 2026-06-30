@@ -39,6 +39,12 @@ wasm-pack.log
 .env.*
 !.env.example
 
+# Local scratch / experiment files — underscore-prefixed is the project
+# convention for throwaway scripts (e.g. src/_oracle.ts, src/_trace.ts).
+# Also excluded from the tsc build in tsconfig.json, so they can never break it.
+_*.ts
+scratch/
+
 # Editor / IDE
 .vscode/
 .idea/

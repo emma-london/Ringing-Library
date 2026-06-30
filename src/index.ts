@@ -9,8 +9,14 @@ export type { FalseRow } from './prover.js';
 export { Composition, CompositionBuilder } from './composition.js';
 export type { CallDefinition, CallingEntry, CompositionJSON } from './composition.js';
 export { Touch } from './touch.js';
-export { searchTouches } from './search.js';
-export type { SearchOptions, SearchResult, SearchReport } from './search.js';
+export { searchTouches, searchStedmanTouches } from './search.js';
+export type {
+  SearchOptions,
+  SearchResult,
+  SearchReport,
+  StedmanCall,
+  StedmanSearchOptions,
+} from './search.js';
 export { MethodLibrary } from './method-library.js';
 export type { MethodLibraryEntry, MethodClassification } from './method-library.js';
 export {

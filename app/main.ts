@@ -206,14 +206,13 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
 
 // ===================== SEARCH =====================
 (function(){
-  const mSel = $('s-method'), maxIn = $('s-maxchanges'), callsSel = $('s-calls'),
+  const mSel = $('s-method'), minIn = $('s-minchanges'), maxIn = $('s-maxchanges'), callsSel = $('s-calls'),
         limIn = $('s-limit'), runBtn = $('s-run');
 
-  // Only lead-end-called methods are in scope for the bounded searcher (ADR-0011);
-  // Stedman's six-based calling (ADR-0007) is left to the Phase 4 engine.
-  const SEARCHABLE = ENTRIES
-    .map((e,i)=>({ e, i }))
-    .filter(({e}) => e.classification !== 'Principle' && !/stedman/i.test(e.name));
+  // Lead-end methods go through searchTouches; Stedman's six-based calling goes
+  // through searchStedmanTouches (ADR-0012). Both are in scope for the bounded
+  // searcher now — every method the library can prove can also be searched.
+  const SEARCHABLE = ENTRIES.map((e,i)=>({ e, i }));
 
   SEARCHABLE.forEach(({e,i})=>{
     const o=document.createElement('option'); o.value=String(i); o.textContent=`${e.name} (${e.stage})`;
@@ -222,22 +221,31 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
 
   function curEntry(){ return ENTRIES[+mSel.value]; }
 
-  // The call set to search over, honouring the bobs-only / bobs+singles toggle.
+  // The call set to search over, honouring the bobs-only / singles-only / both toggle.
   function searchCalls(entry){
     const all = callsFor(entry);
     if (callsSel.value === 'bobs') return all.filter(c => /bob/i.test(c.name));
+    if (callsSel.value === 'singles') return all.filter(c => /single/i.test(c.name));
     return all;
   }
 
-  function render(report, entry, calls){
+  // Stedman's searcher takes plain 'bob'/'single' codes, not CallDefinitions
+  // (it makes one single-character call per six — ADR-0012).
+  function stedmanSearchCalls(){
+    if (callsSel.value === 'bobs') return ['bob'];
+    if (callsSel.value === 'singles') return ['single'];
+    return ['bob','single'];
+  }
+
+  function render(report, entry, callLegend){
     const cont = $('s-results'); cont.innerHTML='';
-    const bobSym = (calls.find(c => /bob/i.test(c.name))||{}).symbol || '-';
-    const singleSym = (calls.find(c => /single/i.test(c.name))||{}).symbol || 's';
+    const sixBased = isStedman(entry);
+    const unit = sixBased ? 'sixes' : 'leads';
 
     report.results.forEach(r=>{
       const it=document.createElement('div'); it.className='compitem';
       const len=document.createElement('span'); len.className='len'; len.innerHTML=`<b>${r.changes}</b> ch`;
-      const lds=document.createElement('span'); lds.className='lds'; lds.textContent=`${r.leads} leads`;
+      const lds=document.createElement('span'); lds.className='lds'; lds.textContent=`${r.leads} ${unit}`;
       const cl=document.createElement('span'); cl.className='cl'; cl.textContent = r.calling === '' ? '(plain course)' : r.calling;
       it.append(len, lds, cl);
       if (r.snap){ const s=document.createElement('span'); s.className='snapb'; s.textContent='SNAP'; it.appendChild(s); }
@@ -255,7 +263,7 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
     $('s-rescount').textContent =
       `— ${report.results.length} shown` +
       (report.truncated ? ' (more exist — raise the limit or narrow the calls)' : ' (complete within the length limit)') +
-      `; bob ${bobSym}` + (calls.some(c=>/single/i.test(c.name)) ? `, single ${singleSym}` : '') + ', . plain';
+      `; ` + (callLegend ? callLegend + ', ' : '') + '. plain';
     $('s-resultspanel').style.display='block';
 
     const bs=$('s-badges'); bs.innerHTML='';
@@ -273,10 +281,15 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
   function run(){
     $('s-error').textContent='';
     const entry = curEntry();
-    const calls = searchCalls(entry);
+    const sixBased = isStedman(entry);
     let maxChanges = Math.min(250, Math.max(14, parseInt(maxIn.value,10) || 250));
+    let minChanges = Math.min(maxChanges, Math.max(0, parseInt(minIn.value,10) || 0));
     let limit = Math.min(1000, Math.max(1, parseInt(limIn.value,10) || 200));
-    maxIn.value = String(maxChanges); limIn.value = String(limit);
+    minIn.value = String(minChanges); maxIn.value = String(maxChanges); limIn.value = String(limit);
+
+    // Legend of the calls in use this run (used by render).
+    const legendOf = arr => arr.join(', ');
+    const symFor = { bob: '-', single: 's' };
 
     $('s-status').textContent = 'Searching…';
     $('s-resultspanel').style.display='none'; $('s-badges').innerHTML='';
@@ -287,11 +300,21 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
       try {
         const method = methodFor(entry);
         const t0 = performance.now();
-        const report = R.searchTouches({ method, calls, maxChanges, limit });
+        let report, callLegend;
+        if (sixBased){
+          const calls = stedmanSearchCalls(); // ['bob'] / ['single'] / both
+          report = R.searchStedmanTouches({ method, calls, minChanges, maxChanges, limit });
+          callLegend = legendOf(calls.map(c => `${c} ${symFor[c]}`));
+        } else {
+          const calls = searchCalls(entry);
+          report = R.searchTouches({ method, calls, minChanges, maxChanges, limit });
+          callLegend = legendOf(calls.map(c => `${c.name.toLowerCase()} ${c.symbol}`));
+        }
         const ms = Math.round(performance.now() - t0);
-        render(report, entry, calls);
+        render(report, entry, callLegend);
+        const unit = sixBased ? 'sixes' : 'leads';
         $('s-status').textContent =
-          `Searched to ${report.leadsSearched} leads in ${ms} ms` +
+          `Searched to ${report.leadsSearched} ${unit} in ${ms} ms` +
           (report.truncated ? ' — stopped at the result limit or search budget.' : '.');
       } catch(err){
         $('s-error').textContent = 'Error: '+err.message;
@@ -304,7 +327,7 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
 
   runBtn.addEventListener('click', run);
   callsSel.addEventListener('change', run);
-  [maxIn, limIn].forEach(el => el.addEventListener('keydown', e=>{ if(e.key==='Enter') run(); }));
+  [minIn, maxIn, limIn].forEach(el => el.addEventListener('keydown', e=>{ if(e.key==='Enter') run(); }));
   // Default to Grandsire Triples if present (its snaps make the demo interesting).
   const gIdx = SEARCHABLE.findIndex(({e}) => /grandsire/i.test(e.name));
   if (gIdx >= 0) mSel.value = String(SEARCHABLE[gIdx].i);

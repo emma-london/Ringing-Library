@@ -15,5 +15,6 @@
     "skipLibCheck": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "//exclude": "Underscore-prefixed files are local scratch/experiments (see .gitignore) — never part of the build.",
+  "exclude": ["node_modules", "dist", "src/**/_*.ts", "src/_*.ts"]
 }

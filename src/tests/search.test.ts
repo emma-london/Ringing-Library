@@ -56,6 +56,20 @@ describe('searchTouches — invariants', () => {
     expect(limited.results.length).toBe(5);
     expect(limited.truncated).toBe(true);
   });
+
+  it('respects the minChanges floor — skips shorter touches but keeps the rest, in order', () => {
+    const opts = { method: grandsire, calls: grandsireCalls(7), maxChanges: 140, limit: 1000, maxNodes: 30_000_000 };
+    const full = searchTouches(opts).results;
+    const floored = searchTouches({ ...opts, minChanges: 71 }).results;
+    // Every result is at least the floor…
+    expect(floored.every((r) => r.changes >= 71)).toBe(true);
+    // …and the floored set is exactly the full set with the short ones removed
+    // (same callings, same order — the floor is a record-time filter, not a re-sort).
+    expect(floored.map((r) => r.calling)).toEqual(full.filter((r) => r.changes >= 71).map((r) => r.calling));
+    // The 42-change "---" and 70-change plain course are excluded; the 84s remain.
+    expect(floored.some((r) => r.calling === '.....')).toBe(false);
+    expect(floored[0]!.changes).toBe(84);
+  });
 });
 
 describe('searchTouches — live diff vs the C++ grandsire_solver prototype', () => {
