@@ -1,4 +1,4 @@
-import { Stage } from '../bell.js';
+import { Stage, bellToChar } from '../bell.js';
 import { Change } from '../change.js';
 import { Composition, type CallDefinition, type CallingEntry } from '../composition.js';
 import { Method } from '../method.js';
@@ -128,7 +128,7 @@ export function plainBobCalls(stage: Stage = 8): CallDefinition[] {
 }
 
 // ---------------------------------------------------------------------------
-// Stedman Triples calls (ADR-0007, Option B)
+// Stedman calls, Triples and upwards (ADR-0007 Option B, generalized by ADR-0009)
 // ---------------------------------------------------------------------------
 
 /**
@@ -139,20 +139,44 @@ export function plainBobCalls(stage: Stage = 8): CallDefinition[] {
  * nine possible (first-six, second-six) callings of a double-six is encoded as a
  * single compound call: the eight non-plain combinations of {Plain, Bob, Single}.
  *
- * At a six-end the plain back-work change is `7` (the bell lies behind); a **bob**
- * makes 5ths (`5`) and a **single** makes 5ths-6ths-7ths (`567`) — each a single
- * change substituted for the `7` that *begins* its six. In the double-six lead
- * `3.1.7.3.1.3.1.3.7.1.3.1` those two `7`s are at change-indices 2 (first six-end)
- * and 8 (second six-end). Verified against published touches: bobs at sixes
- * 3,4,7,8,12,13 (SLQ) come round true in 84; a single at an unaffected six,
- * repeated, comes round true in 168.
+ * At a six-end the plain back-work change is the **tenor place** (the bell lies
+ * behind — `7` on Triples, `9` on Caters, `e`/`E` on Cinques, …); a **bob** makes
+ * 5ths (`5`) and a **single** makes 5ths-6ths-7ths (`567`) — each a single change
+ * substituted for the tenor-place token that *begins* its six. In the double-six
+ * lead those two tenor-place tokens are at change-indices 2 (first six-end) and 8
+ * (second six-end). This generalizes cleanly from Triples upwards (Caters,
+ * Cinques, …): the front-three "point and cross" work that makes Stedman what it
+ * is never changes; only the tenor-place token and the stage passed to
+ * `Change.parse` scale with the extra pairs of bells dodging behind. Verified for
+ * Triples against published touches: bobs at sixes 3,4,7,8,12,13 (SLQ) come round
+ * true in 84; a single at an unaffected six, repeated, comes round true in 168.
+ *
+ * **Stedman Doubles (stage 5) is excluded — not a smaller version of this
+ * pattern.** With only two working bells behind the front three there is no room
+ * for the same six-end bob/single shape; Doubles' calls are a genuine structural
+ * exception. Deferred to a future phase (see ADR-0009) — call `stedmanCalls(5)`
+ * and it throws rather than returning something silently wrong.
  *
  * Symbols are the two-letter pair, e.g. `BB`, `SP`, `PB` (case-insensitive). The
  * plain double-six (`PP`) is the absence of a call.
  */
-export function stedmanTriplesCalls(): CallDefinition[] {
-  const sixEndChange: Record<string, string> = { P: '7', B: '5', S: '567' };
-  const plain = ['3', '1', '7', '3', '1', '3', '1', '3', '7', '1', '3', '1'];
+export function stedmanCalls(stage: Stage = Stage.TRIPLES): CallDefinition[] {
+  if (stage === Stage.DOUBLES) {
+    throw new Error(
+      'Stedman Doubles (stage 5) calls are not implemented — its six-end call ' +
+        'structure is a genuine exception to the Triples-and-upwards pattern, not ' +
+        'just a smaller version of it. Deferred to a future phase (see ADR-0009).',
+    );
+  }
+  if (stage % 2 === 0 || stage < Stage.TRIPLES) {
+    throw new Error(
+      `stedmanCalls is defined for odd stages Triples (7) and upwards; got stage ${stage}`,
+    );
+  }
+
+  const tenor = bellToChar(stage - 1); // the tenor lies behind at every plain six-end
+  const sixEndChange: Record<string, string> = { P: tenor, B: '5', S: '567' };
+  const plain = ['3', '1', tenor, '3', '1', '3', '1', '3', tenor, '1', '3', '1'];
   const longName: Record<string, string> = { P: 'Plain', B: 'Bob', S: 'Single' };
   const pairs = ['PB', 'PS', 'BP', 'BB', 'BS', 'SP', 'SB', 'SS'];
   return pairs.map((sym) => {
@@ -164,17 +188,34 @@ export function stedmanTriplesCalls(): CallDefinition[] {
     return {
       name: `${longName[a]}/${longName[b]} six`,
       symbol: sym,
-      changes: tokens.map((t) => Change.parse(t, 7)),
+      changes: tokens.map((t) => Change.parse(t, stage)),
     };
   });
 }
 
+/** Back-compat alias: `stedmanCalls` at stage 7 (Triples) specifically. */
+export function stedmanTriplesCalls(): CallDefinition[] {
+  return stedmanCalls(Stage.TRIPLES);
+}
+
+/** The default Stedman method for a given stage (Triples upwards), built the same way STANDARD_METHODS' entry is. */
+function defaultStedmanMethod(stage: Stage): Method {
+  const tenor = bellToChar(stage - 1);
+  return Method.fromPlaceNotation(`3.1.${tenor}.3.1.3,1`, stage, `Stedman ${stage === Stage.TRIPLES ? 'Triples' : stage}`);
+}
+
 /**
- * Build a Stedman Triples `Composition` from a **per-six** calling string — the
- * natural notation ringers use, one character per six read left to right:
- * `.`/`p` plain, `-`/`b` bob, `s` single (case-insensitive). The number of
- * characters is the number of sixes; they are folded into double-six leads and
- * mapped onto the eight compound calls of `stedmanTriplesCalls()`.
+ * Build a Stedman `Composition` (Triples upwards, ADR-0009) from a **per-six**
+ * calling string — the natural notation ringers use, one character per six read
+ * left to right: `.`/`p` plain, `-`/`b` bob, `s` single (case-insensitive). The
+ * number of characters is the number of sixes; they are folded into double-six
+ * leads and mapped onto the eight compound calls of `stedmanCalls(method.stage)`.
+ *
+ * `method` defaults to Stedman Triples (stage 7) if omitted; pass a higher-stage
+ * Stedman method (Caters, Cinques, …) to build at that stage — the compound calls
+ * scale their tenor-place token automatically (see `stedmanCalls`). Stage 5
+ * (Doubles) is not supported here either, for the same reason `stedmanCalls`
+ * excludes it.
  *
  * An odd number of sixes is allowed (a touch may come round on the first six of a
  * lead); the final half-lead's second six is left plain and the touch comes round
@@ -182,14 +223,11 @@ export function stedmanTriplesCalls(): CallDefinition[] {
  *
  * @example
  *   // SLQ — bobs at sixes 3,4,7,8,12,13 → true 84
- *   stedmanTriplesComposition('..bb..bb...bb.');
+ *   stedmanComposition('..bb..bb...bb.');
  */
-export function stedmanTriplesComposition(
-  perSixCalling: string,
-  method?: Method,
-): Composition {
-  const m = method ?? Method.fromPlaceNotation('3.1.7.3.1.3,1', 7, 'Stedman Triples');
-  const calls = stedmanTriplesCalls();
+export function stedmanComposition(perSixCalling: string, method?: Method): Composition {
+  const m = method ?? defaultStedmanMethod(Stage.TRIPLES);
+  const calls = stedmanCalls(m.stage);
   const code = (ch: string): 'P' | 'B' | 'S' => {
     const c = ch.toLowerCase();
     if (c === '.' || c === 'p') return 'P';
@@ -207,4 +245,60 @@ export function stedmanTriplesComposition(
     calling.push({ lead, call: `${a}${b}` });
   }
   return new Composition({ method: m, length, calls, calling });
+}
+
+/** Back-compat alias: `stedmanComposition` at stage 7 (Triples) specifically. */
+export function stedmanTriplesComposition(perSixCalling: string, method?: Method): Composition {
+  return stedmanComposition(perSixCalling, method);
+}
+
+// ---------------------------------------------------------------------------
+// Generic call construction (ADR-0009)
+// ---------------------------------------------------------------------------
+
+/**
+ * Standard calls for a method, without a bespoke per-method factory.
+ *
+ * Two-tier lookup, dispatched by **method-name family**, not by
+ * `MethodClassification` (see below):
+ *
+ *  1. **Special-case families**, matched by name prefix (case-insensitive):
+ *     - `Grandsire*` (Doubles, Triples, Caters, Cinques, …) → `grandsireCalls(stage)`.
+ *       The bob `3.1` / single `3.123` shape is stage-independent and holds for
+ *       every Grandsire stage, not just Triples.
+ *     - `Stedman*` at stage 7 (Triples) and upwards (Caters, Cinques, …) →
+ *       `stedmanCalls(stage)`. The six-end call shape generalizes the same way.
+ *     - `Stedman*` at **stage 5 (Doubles)** → throws. Stedman Doubles is a
+ *       genuine structural exception, not a smaller version of the
+ *       Triples-and-up pattern — deferred to a future phase (see ADR-0009).
+ *     These don't fit the generic pattern at all (a two-hunt-bell lead end; a
+ *     principle with no fixed lead end), so they stay exactly as validated.
+ *  2. **Default: bob `14` / single `1234`.** Every other method — near lead
+ *     head (`12`, e.g. Plain Bob, Cambridge) or far (`18`/`16`/`10`/`1T`, e.g.
+ *     Kent Treble Bob, Bristol) — gets these two literal, stage-independent
+ *     notation strings, parsed via `Change.parse(_, method.stage)`. This is
+ *     the convention "almost everyone" uses even on far methods; the
+ *     alternative far-calling convention (places at the end) is out of scope
+ *     for now (ADR-0009 — deferred as backlog, not a blocker).
+ *
+ * `MethodClassification` is deliberately *not* the dispatch key: it's the
+ * Central Council's blue-line taxonomy, not a call-notation taxonomy, and
+ * Grandsire (classified `'Place'`, same as ordinary methods) proves the two
+ * don't line up.
+ */
+export function standardCalls(method: Method): CallDefinition[] {
+  const name = method.name.trim().toLowerCase();
+
+  if (name.startsWith('grandsire')) {
+    return grandsireCalls(method.stage);
+  }
+
+  if (name.startsWith('stedman')) {
+    return stedmanCalls(method.stage); // throws for stage 5 (Doubles) — see above
+  }
+
+  return [
+    { name: 'Bob', symbol: '-', changes: [Change.parse('14', method.stage)] },
+    { name: 'Single', symbol: 's', changes: [Change.parse('1234', method.stage)] },
+  ];
 }

@@ -21,8 +21,11 @@ export { MethodLibrary } from './method-library.js';
 export type { MethodLibraryEntry, MethodClassification } from './method-library.js';
 export {
   STANDARD_METHODS,
+  standardCalls,
   grandsireCalls,
   plainBobCalls,
+  stedmanCalls,
   stedmanTriplesCalls,
+  stedmanComposition,
   stedmanTriplesComposition,
 } from './data/standard-methods.js';

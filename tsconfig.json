@@ -15,6 +15,6 @@
     "skipLibCheck": true
   },
   "include": ["src/**/*"],
-  "//exclude": "Underscore-prefixed files are local scratch/experiments (see .gitignore) — never part of the build.",
-  "exclude": ["node_modules", "dist", "src/**/_*.ts", "src/_*.ts"]
+  "//exclude": "Underscore-prefixed files are local scratch/experiments (see .gitignore) — never part of the build. Tests are excluded from dist: they're run via vitest straight from src/ (unaffected by this), and one test helper (src/tests/fixtures/load-fixtures.ts) uses Node's fs/path/url, which has no business in the published, zero-I/O, browser-portable core (ADR-0001, ADR-0008).",
+  "exclude": ["node_modules", "dist", "src/**/_*.ts", "src/_*.ts", "src/tests/**"]
 }

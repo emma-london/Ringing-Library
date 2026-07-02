@@ -8,7 +8,7 @@ describe('bellToChar', () => {
   it('converts 10 to E', () => expect(bellToChar(10)).toBe('E'));
   it('converts 11 to T', () => expect(bellToChar(11)).toBe('T'));
   it('throws on out-of-range index', () => {
-    expect(() => bellToChar(12)).toThrow(RangeError);
+    expect(() => bellToChar(BELL_NAMES.length)).toThrow(RangeError);
     expect(() => bellToChar(-1)).toThrow(RangeError);
   });
 });
@@ -19,8 +19,12 @@ describe('bellFromChar', () => {
   it('parses E', () => expect(bellFromChar('E')).toBe(10));
   it('parses T', () => expect(bellFromChar('T')).toBe(11));
   it('throws on unrecognised character', () => {
-    expect(() => bellFromChar('Z')).toThrow();
-    expect(() => bellFromChar('A')).toThrow();
+    // I, O, X are deliberately excluded by the CCCBR convention (visually
+    // ambiguous with 1, 0, and the cross-change token) — genuinely invalid.
+    expect(() => bellFromChar('I')).toThrow();
+    expect(() => bellFromChar('O')).toThrow();
+    expect(() => bellFromChar('X')).toThrow();
+    expect(() => bellFromChar('@')).toThrow();
   });
 });
 
@@ -29,6 +33,28 @@ describe('BELL_NAMES round-trip', () => {
     for (let i = 0; i < BELL_NAMES.length; i++) {
       expect(bellFromChar(bellToChar(i))).toBe(i);
     }
+  });
+});
+
+describe('BELL_NAMES beyond Maximus (bells 13-33, CCCBR Framework §B.1)', () => {
+  it('has 33 characters, one per bell 1-33', () => {
+    expect(BELL_NAMES.length).toBe(33);
+  });
+
+  it('converts 12 (13th bell) to A, immediately after Maximus (T = 12th)', () => {
+    expect(bellToChar(12)).toBe('A');
+    expect(bellFromChar('A')).toBe(12);
+  });
+
+  it('matches the full CCCBR letter sequence for 13th through 33rd', () => {
+    // 'E' (11th) and 'T' (12th) already claimed; I, O, X excluded throughout.
+    const expected = 'ABCDFGHJKLMNPQRSUVWYZ';
+    expect(BELL_NAMES.slice(12)).toBe(expected);
+    expect(bellToChar(32)).toBe('Z'); // 33rd bell
+  });
+
+  it('has no duplicate characters', () => {
+    expect(new Set(BELL_NAMES).size).toBe(BELL_NAMES.length);
   });
 });
 

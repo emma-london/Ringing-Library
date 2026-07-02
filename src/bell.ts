@@ -27,10 +27,18 @@ export const Stage = {
 } as const;
 
 /**
- * Standard bell name characters in order.
- * Index 0 → '1' (treble), index 9 → '0' (ten), index 10 → 'E', index 11 → 'T'.
+ * Standard bell name characters in order, bells 1 through 33 — the full CCCBR
+ * convention (Framework for Method Ringing, "Rows" §B.1:
+ * https://framework.cccbr.org.uk/version2/fundamentals.html), confirmed 2026-07-02:
+ * digits 1-9, then '0' for the 10th, then upper-case letters for 11th upwards,
+ * skipping 'I', 'O' and 'X' (visually ambiguous with '1', '0', and the cross-change
+ * token respectively).
+ *
+ * Index 0 → '1' (treble) ... index 9 → '0' (10th), index 10 → 'E' (11th), index 11
+ * → 'T' (12th, Maximus — the previous ceiling), index 12 → 'A' (13th) ... index 32
+ * → 'Z' (33rd).
  */
-export const BELL_NAMES = '1234567890ET';
+export const BELL_NAMES = '1234567890ETABCDFGHJKLMNPQRSUVWYZ';
 
 /**
  * Convert a 0-based bell index to its display character.

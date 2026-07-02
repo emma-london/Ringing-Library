@@ -1,9 +1,15 @@
 # ADR-0003: Phasing and roadmap — truth-first core before the search engine
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0013](./ADR-0013-phase-4-prework-and-split.md)
 **Date:** 2026-06-20
 **Deciders:** Emma (project owner)
 **Related:** [ADR-0001](./ADR-0001-cross-platform-compute-architecture.md), [ADR-0002](./ADR-0002-description-vs-execution.md)
+
+> **Superseded (2026-07-02).** Phase 3 completed as planned here. [ADR-0013](./ADR-0013-phase-4-prework-and-split.md)
+> revises the Phase 4 structure below: it inserts a pre-4 step (closing out
+> ADR-0008/ADR-0009) and splits Phase 4 into 4a (engine core) and 4b
+> (execution plumbing + integration). The Phase 3 content and the
+> architectural reasoning here still stand — only the Phase 4 phasing changes.
 
 ## Context
 

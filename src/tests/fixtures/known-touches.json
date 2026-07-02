@@ -1,0 +1,101 @@
+[
+  {
+    "method": "Grandsire Triples",
+    "stage": 7,
+    "family": "lead",
+    "calling": ".S---.S.S---.S.S---.S",
+    "expected": { "isTrue": false },
+    "source": "docs/example-touches.md (original oracle)",
+    "notes": "False"
+  },
+  {
+    "method": "Grandsire Triples",
+    "stage": 7,
+    "family": "lead",
+    "calling": ".....",
+    "expected": { "isTrue": true, "changeCount": 70, "comesToRounds": true, "isSnapFinish": false },
+    "source": "docs/example-touches.md (original oracle)",
+    "notes": "Plain course"
+  },
+  {
+    "method": "Grandsire Triples",
+    "stage": 7,
+    "family": "lead",
+    "calling": "-s--s-",
+    "expected": { "isTrue": true, "changeCount": 84, "comesToRounds": true, "isSnapFinish": false },
+    "source": "docs/example-touches.md (original oracle)",
+    "notes": "BSBBSB"
+  },
+  {
+    "method": "Grandsire Triples",
+    "stage": 7,
+    "family": "lead",
+    "calling": "s.s.s-.",
+    "expected": { "isTrue": true, "changeCount": 97, "comesToRounds": true, "isSnapFinish": true },
+    "source": "docs/example-touches.md (original oracle)",
+    "notes": "SPSPSBP - snap finish"
+  },
+  {
+    "method": "Plain Bob Major",
+    "stage": 8,
+    "family": "lead",
+    "calling": "-..S..-.---..",
+    "expected": { "isTrue": false },
+    "source": "docs/example-touches.md (original oracle)",
+    "notes": "False"
+  },
+  {
+    "method": "Plain Bob Major",
+    "stage": 8,
+    "family": "lead",
+    "calling": "-.....--.....-",
+    "expected": { "isTrue": true, "changeCount": 224, "comesToRounds": true },
+    "source": "docs/example-touches.md (original oracle)",
+    "notes": "WHWH"
+  },
+  {
+    "method": "Stedman Triples",
+    "stage": 7,
+    "family": "stedman-six",
+    "calling": "..............",
+    "expected": { "isTrue": true, "changeCount": 84, "comesToRounds": true },
+    "source": "wiki.changeringing.co.uk/Conducting_Stedman (via src/tests/stedman-calls.test.ts)",
+    "notes": "Plain course"
+  },
+  {
+    "method": "Stedman Triples",
+    "stage": 7,
+    "family": "stedman-six",
+    "calling": "..bb..bb...bb.",
+    "expected": { "isTrue": true, "changeCount": 84, "comesToRounds": true },
+    "source": "wiki.changeringing.co.uk/Conducting_Stedman (via src/tests/stedman-calls.test.ts)",
+    "notes": "SLQ - bobs at sixes 3,4,7,8,12,13"
+  },
+  {
+    "method": "Stedman Triples",
+    "stage": 7,
+    "family": "stedman-six",
+    "calling": "s.............s.............",
+    "expected": { "isTrue": true, "changeCount": 168, "comesToRounds": true },
+    "source": "wiki.changeringing.co.uk/Conducting_Stedman (via src/tests/stedman-calls.test.ts)",
+    "notes": "A single at six 1, repeated at six 15"
+  },
+  {
+    "method": "Stedman Triples",
+    "stage": 7,
+    "family": "stedman-six",
+    "calling": "..b.............b.............b...........",
+    "expected": { "isTrue": true, "changeCount": 252, "comesToRounds": true },
+    "source": "wiki.changeringing.co.uk/Conducting_Stedman (via src/tests/stedman-calls.test.ts)",
+    "notes": "Bobs at sixes 3, 17, 31 (a bob calling oneself unaffected three times)"
+  },
+  {
+    "method": "Stedman Triples",
+    "stage": 7,
+    "family": "stedman-six",
+    "calling": "..bb..bb...bb...bb..bb...bb.",
+    "expected": { "isTrue": false },
+    "source": "src/tests/stedman-calls.test.ts",
+    "notes": "SLQ repeated twice (168) - false, comes round at 84 so every row rings twice"
+  }
+]
