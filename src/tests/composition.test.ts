@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Method } from '../method.js';
 import { Row } from '../row.js';
-import { Composition } from '../composition.js';
+import { Composition, COMPOSITION_JSON_SCHEMA_VERSION } from '../composition.js';
 import { grandsireCalls, plainBobCalls } from '../data/standard-methods.js';
 
 const grandsire = Method.fromPlaceNotation('3.1.7.1.7.1.7.1.7.1.7.1.7.1', 7, 'Grandsire Triples');
@@ -133,6 +133,34 @@ describe('Composition serialisation', () => {
     const original = Composition.fromCalling(pbMajor, '-.....--.....-', { calls: pbCalls });
     const restored = Composition.fromJSON(JSON.parse(JSON.stringify(original.toJSON())));
     expect(restored.key()).toBe(original.key());
+  });
+});
+
+describe('CompositionJSON schemaVersion (ADR-0016)', () => {
+  it('toJSON stamps the current schemaVersion', () => {
+    const c = Composition.fromCalling(grandsire, '.....', { calls: gCalls });
+    expect(c.toJSON().schemaVersion).toBe(COMPOSITION_JSON_SCHEMA_VERSION);
+  });
+
+  it('fromJSON rejects a missing schemaVersion', () => {
+    const json = Composition.fromCalling(grandsire, '.....', { calls: gCalls }).toJSON();
+    const { schemaVersion, ...withoutVersion } = json;
+    expect(() => Composition.fromJSON(withoutVersion as typeof json)).toThrow(/schemaVersion/);
+  });
+
+  it('fromJSON rejects an unrecognised schemaVersion', () => {
+    const json = Composition.fromCalling(grandsire, '.....', { calls: gCalls }).toJSON();
+    const bad = { ...json, schemaVersion: 999 };
+    expect(() => Composition.fromJSON(bad)).toThrow(/schemaVersion/);
+  });
+
+  it('schemaVersion is not part of Composition identity (key/hash unaffected)', () => {
+    // Identity is the bare calling (ADR-0005) — a serialization-format detail
+    // like schemaVersion must never leak into it.
+    const a = Composition.fromCalling(grandsire, '-s--s-', { calls: gCalls });
+    const b = Composition.fromJSON(a.toJSON());
+    expect(b.key()).toBe(a.key());
+    expect(b.hash()).toBe(a.hash());
   });
 });
 

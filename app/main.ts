@@ -22,14 +22,11 @@ const SORTED_METHODS = ENTRIES
 function $(id){ return document.getElementById(id); }
 const BELL_NAMES = R.BELL_NAMES;
 
-// Pick a sensible call set for a method by name/stage.
-function callsFor(entry){
-  if (/grandsire/i.test(entry.name)) return R.grandsireCalls(entry.stage);
-  // Stedman: bobs/singles fall at six-ends; ADR-0007 encodes each double-six as
-  // one of eight compound calls. Built via R.stedmanTriplesComposition (per-six).
-  if (/stedman/i.test(entry.name)) return R.stedmanTriplesCalls();
-  if (entry.classification === 'Principle') return [];
-  return R.plainBobCalls(entry.stage); // Plain Bob & standard surprise: bob 14 / single 1234
+// Standard calls for a method — bob/single default, or the Grandsire/Stedman
+// special cases — decided by the library itself (ADR-0009's standardCalls),
+// not duplicated here. Takes a built Method, not a raw STANDARD_METHODS entry.
+function callsFor(method){
+  return R.standardCalls(method);
 }
 function isStedman(entry){ return /stedman/i.test(entry.name); }
 function callLabel(calls){
@@ -118,7 +115,16 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
 
   function syncMethod(){
     const e = curEntry();
-    const calls = callsFor(e);
+    $('c-error').textContent = '';
+    let calls;
+    try {
+      calls = callsFor(methodFor(e));
+    } catch (err) {
+      // e.g. a hypothetical Stedman Doubles entry — standardCalls deliberately
+      // throws rather than silently returning the wrong calls (ADR-0009).
+      $('c-error').textContent = 'Error: ' + err.message;
+      calls = [];
+    }
     const unit = isStedman(e) ? 'six' : 'lead';
     $('c-label').textContent = 'Calling — one char per ' + unit + ' (length = number of characters)';
     if (isStedman(e)){
@@ -152,7 +158,7 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
         if (calling.length === 0) throw new Error('Enter a per-six calling (e.g. ".............." or "..bb..bb...bb.")');
         comp = R.stedmanTriplesComposition(calling);
       } else {
-        const calls = callsFor(e);
+        const calls = callsFor(method);
         const calling = normaliseCalling(callIn.value, calls); // length is taken from here
         if (calling.length === 0) throw new Error('Enter a calling — one character per lead (e.g. "....." or "s.s.s-.")');
         comp = R.Composition.fromCalling(method, calling, { calls });
@@ -259,8 +265,8 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
   function curEntry(){ return ENTRIES[+mSel.value]; }
 
   // The call set to search over, honouring the bobs-only / singles-only / both toggle.
-  function searchCalls(entry){
-    const all = callsFor(entry);
+  function searchCalls(method){
+    const all = callsFor(method);
     if (callsSel.value === 'bobs') return all.filter(c => /bob/i.test(c.name));
     if (callsSel.value === 'singles') return all.filter(c => /single/i.test(c.name));
     return all;
@@ -343,7 +349,7 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
           report = R.searchStedmanTouches({ method, calls, minChanges, maxChanges, limit });
           callLegend = legendOf(calls.map(c => `${c} ${symFor[c]}`));
         } else {
-          const calls = searchCalls(entry);
+          const calls = searchCalls(method);
           report = R.searchTouches({ method, calls, minChanges, maxChanges, limit });
           callLegend = legendOf(calls.map(c => `${c.name.toLowerCase()} ${c.symbol}`));
         }

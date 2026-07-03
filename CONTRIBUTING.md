@@ -21,10 +21,11 @@ npm run test:watch
 npm run build     # tsc, strict, ESM (NodeNext), output to dist/
 ```
 
-The core is plain TypeScript with no runtime dependencies. The browser test-bench
-(`ringing-test-bench.html`) bundles the library with esbuild; if you change the library and
-want the app to reflect it, rebuild the bundle and re-inject it into the file's first
-`<script>` block (see the project notes for the exact esbuild command).
+The core is plain TypeScript with no runtime dependencies. The browser test bench lives in
+`app/` (a Vite SPA, deployed via GitHub Pages — see ADR-0010) and imports the library
+directly from `../src`; run it locally with `npm run app:dev`. Per ADR-0016 the test bench
+is the **sole, named exception** to "apps consume the published package" — every other app
+(present or future) must depend on a published version, never on `src` directly.
 
 ## Engineering norms
 
@@ -87,5 +88,22 @@ be unblocked.
 Grandsire and Stedman are intentionally in the curated method set because they stress the
 model (odd stages, principles, six-end calls). If you are generalising the common path
 (e.g. method/call construction), treat them as explicitly-registered special cases — see
-ADR-0006, ADR-0007, and the Draft ADR-0009 — rather than bending the general mechanism
-around them.
+ADR-0006, ADR-0007, and ADR-0009 — rather than bending the general mechanism around them.
+
+## Releasing
+
+The package is not yet published (`package.json` is `"private": true` — see ADR-0016).
+Once we're ready to cut the first release:
+
+1. Confirm the `LICENSE`, package name, and version-1.0.0 criteria decisions (all recorded
+   as ADR-0016 addenda once agreed) are settled.
+2. Update `CHANGELOG.md`: rename `[Unreleased]` to the version being released (with date),
+   and start a fresh empty `[Unreleased]` section above it.
+3. Remove (or flip to `false`) the `"private"` field in `package.json`.
+4. `npm version <patch|minor|major>` (tags the commit), then `git push --follow-tags`.
+5. `npm publish` (requires an authenticated npm account with publish rights — a manual,
+   human step; not something to run unattended).
+
+This is a manual process for now, appropriate for a single maintainer. If/when there are
+multiple contributors or a release cadence, revisit as a `Draft` ADR (CI-driven publish,
+required reviews before a version bump, etc.) rather than improvising at release time.

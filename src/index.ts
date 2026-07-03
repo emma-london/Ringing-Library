@@ -6,7 +6,7 @@ export { PlaceNotation } from './place-notation.js';
 export { Method } from './method.js';
 export { Prover, Proof } from './prover.js';
 export type { FalseRow } from './prover.js';
-export { Composition, CompositionBuilder } from './composition.js';
+export { Composition, CompositionBuilder, COMPOSITION_JSON_SCHEMA_VERSION } from './composition.js';
 export type { CallDefinition, CallingEntry, CompositionJSON } from './composition.js';
 export { Touch } from './touch.js';
 export { searchTouches, searchStedmanTouches } from './search.js';

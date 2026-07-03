@@ -5,6 +5,25 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "//private": "Set to false (and pick the package name + license below) when actually ready to publish — ADR-0016. Prevents an accidental `npm publish` in the meantime.",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/emma-london/Ringing-Library.git"
+  },
+  "homepage": "https://github.com/emma-london/Ringing-Library#readme",
+  "bugs": {
+    "url": "https://github.com/emma-london/Ringing-Library/issues"
+  },
+  "keywords": [
+    "change-ringing",
+    "bell-ringing",
+    "campanology",
+    "method-ringing",
+    "typescript"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "vitest run",

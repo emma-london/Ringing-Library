@@ -37,10 +37,23 @@ export interface CallingEntry {
 }
 
 /**
+ * The `CompositionJSON` shape's own version, independent of the library's
+ * package version (ADR-0016). A `Composition` is designed to be cached,
+ * shared, and persisted — it can outlive the process (and the library
+ * version) that created it — so its serialized shape is a compatibility
+ * surface in its own right. Bump this only when `CompositionJSON`'s shape
+ * changes; `fromJSON` rejects anything that doesn't match, rather than
+ * attempting to parse a shape it doesn't recognise.
+ */
+export const COMPOSITION_JSON_SCHEMA_VERSION = 1;
+
+/**
  * Plain-data form of a `Composition` for transport and storage.
  * References the method by identity (name + notation + stage).
  */
 export interface CompositionJSON {
+  /** See `COMPOSITION_JSON_SCHEMA_VERSION` (ADR-0016). */
+  schemaVersion: number;
   method: { name: string; notation: string; stage: Stage };
   startRow: string;
   length: number;
@@ -198,6 +211,7 @@ export class Composition {
 
   toJSON(): CompositionJSON {
     return {
+      schemaVersion: COMPOSITION_JSON_SCHEMA_VERSION,
       method: {
         name: this.method.name,
         notation: PlaceNotation.stringify([...this.method.changes]),
@@ -215,8 +229,21 @@ export class Composition {
     };
   }
 
-  /** Reconstruct from `toJSON()` output. Rebuilds the method from its notation. */
+  /**
+   * Reconstruct from `toJSON()` output. Rebuilds the method from its notation.
+   *
+   * Validates `schemaVersion` first (ADR-0016) and throws a clear, specific
+   * error on a missing or unrecognised version, rather than attempting to
+   * parse a shape this version of the library doesn't understand.
+   */
   static fromJSON(json: CompositionJSON): Composition {
+    if (json.schemaVersion !== COMPOSITION_JSON_SCHEMA_VERSION) {
+      throw new Error(
+        `Composition.fromJSON: unrecognised schemaVersion ${JSON.stringify(json.schemaVersion)} ` +
+          `(expected ${COMPOSITION_JSON_SCHEMA_VERSION}). This data was serialized by a ` +
+          `different version of the CompositionJSON shape than this library understands.`,
+      );
+    }
     const method = Method.fromPlaceNotation(json.method.notation, json.method.stage, json.method.name);
     const calls: CallDefinition[] = json.calls.map((c) => ({
       name: c.name,

@@ -79,3 +79,11 @@ for a clean separation between the library and its demo surface.
   for reference but should be treated as frozen; `app/` is the living version.
 - Revisit if the library is published as a package (Option C) or if the app grows
   beyond a single-page test bench.
+
+**Addendum (2026-07-03):** Option C's "revisit if published" moment has
+arrived in policy form, if not yet in mechanics. [ADR-0016](./ADR-0016-library-to-app-interface-contract.md)
+decides that once other apps exist, they consume a published, versioned
+package — never `src/` directly. This app's `../src` import is explicitly
+named there as the **sole exception** (this ADR's whole rationale — always-
+fresh, same-repo, disposable reference UI — is exactly why it's exempted, not
+a reason to extend the pattern to future apps).
