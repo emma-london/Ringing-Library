@@ -7,7 +7,7 @@
   "types": "./dist/index.d.ts",
   "files": ["dist"],
   "//private": "Set to false (and pick the package name + license below) when actually ready to publish — ADR-0016. Prevents an accidental `npm publish` in the meantime.",
-  "private": true,
+  "private": false,
   "license": "MIT",
   "repository": {
     "type": "git",
