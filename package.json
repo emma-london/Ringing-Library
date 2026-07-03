@@ -1,11 +1,13 @@
 {
   "name": "ringing-lib-ts",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A TypeScript library for change ringing",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "//private": "Set to false (and pick the package name + license below) when actually ready to publish — ADR-0016. Prevents an accidental `npm publish` in the meantime.",
   "private": false,
   "license": "MIT",
