@@ -19,6 +19,16 @@ export type {
 } from './search.js';
 export { MethodLibrary } from './method-library.js';
 export type { MethodLibraryEntry, MethodClassification } from './method-library.js';
+export { LeadHeadEngine, GrandsireTriplesEngine } from './engine/index.js';
+export type {
+  CompositionEngine,
+  EngineTouch,
+  EngineFind,
+  CountRow,
+  CountReport,
+  MitmCount,
+  QSet,
+} from './engine/index.js';
 export {
   STANDARD_METHODS,
   standardCalls,

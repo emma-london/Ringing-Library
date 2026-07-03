@@ -81,6 +81,15 @@ Deliverable: a working, verified WASM module, callable directly (even
 synchronously, with no `Executor` or chunking) — a genuine checkpoint, not a
 half-built phase.
 
+> **Amended by [ADR-0017](./ADR-0017-engine-language-spike.md) (2026-07-03):**
+> the language spike found AssemblyScript ~2.3× *slower* than optimized TS on the
+> kernel, and Rust/wasm-pack (the only real speed win) unprovisionable in this
+> sandbox/CI. The 4a deliverable is therefore revised to "a working, verified
+> engine core behind a **stable seam**, in optimized TS," with WASM compilation
+> (via Rust/wasm-pack, **not** AssemblyScript) deferred to a future drop-in behind
+> the same seam. The pre-4 / 4a / 4b split and all other 4a scope (algorithms,
+> live-diff validation, the "callable directly" checkpoint) stand unchanged.
+
 > **Addendum (2026-07-03):** also scoped into 4a — vendoring the full CCCBR
 > method library as a **bundled static snapshot** (not a live fetch), so
 > `MethodLibrary` can offer the complete method set without an app needing

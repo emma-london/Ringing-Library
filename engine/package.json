@@ -1,0 +1,15 @@
+{
+  "name": "ringing-engine-spike",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Phase 4a engine-language spike (ADR-0017). Not the production engine (see ../src/engine).",
+  "scripts": {
+    "asc": "asc assembly/kernel.ts --outFile spike/kernel.wasm --optimize --runtime minimal",
+    "spike": "node spike/run-fair.mjs",
+    "spike:full": "node spike/run.mjs"
+  },
+  "devDependencies": {
+    "assemblyscript": "^0.28.19"
+  }
+}
