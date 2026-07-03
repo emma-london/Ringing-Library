@@ -14,6 +14,13 @@ JSON shape is versioned separately from the function API.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-03
+
+First stable release — marks **Phase 4a completion** (ADR-0016). From here the
+public surface (`src/index.ts`) is governed by SemVer proper: breaking changes
+require a MAJOR bump. `Composition`'s serialized JSON is versioned separately
+via `schemaVersion` (ADR-0016).
+
 ### Added
 - `standardCalls(method)` — generic call construction for the common case
   (bob `14` / single `1234`), dispatching `Grandsire*` (Doubles upwards) and
@@ -39,6 +46,26 @@ JSON shape is versioned separately from the function API.
   composition oracles used in testing. Internal to the test suite, not part
   of the public API surface; `docs/example-touches.md` is now generated from
   it. (ADR-0008)
+- **Composition search engine core** behind a stable `CompositionEngine` seam:
+  `LeadHeadEngine` (generic over any treble-hunt lead-head method up to Royal)
+  and `GrandsireTriplesEngine` (a thin preset + the C++ live-diff path), with
+  result/report types `EngineTouch`, `EngineFind`, `CountRow`, `CountReport`,
+  `MitmCount`, `QSet`. An optimized-TypeScript port of the validated C++
+  prototype (ranked lead-head DFS, bitset truth, reachability DP,
+  meet-in-the-middle, Q-sets, snap finishes); emits re-provable `Composition`s.
+  Rust/wasm-pack remains the recorded future drop-in behind the same seam.
+  (ADR-0013, ADR-0017, ADR-0018)
+- **Bounded composition searchers** `searchTouches` (lead-end methods) and
+  `searchStedmanTouches` (six-based), with `SearchOptions`, `SearchResult`,
+  `SearchReport`, `StedmanSearchOptions`, and `StedmanCall` types — capped,
+  shortest-first, truth-pruned; a stable interface the Phase 4b engine slots
+  behind unchanged. (ADR-0011, ADR-0012)
+- **CCCBR method-library snapshot support.** `MethodLibraryEntry` gained
+  optional `id`, `leadHeadCode`, `symmetry`, and `little`; `MethodLibrary`
+  gained `byLeadHeadCode()`. Backed by an authoring-time pipeline
+  (`npm run data:refresh`) that vendors the full CCCBR library sharded by
+  stage plus a resolved standard set — data and tooling only, outside the
+  public API and the zero-I/O runtime core. (ADR-0015)
 
 ### Notes
 - Nothing in this release removes or changes the behavior of any
@@ -46,6 +73,7 @@ JSON shape is versioned separately from the function API.
   `stedmanTriplesCalls`, and `stedmanTriplesComposition` all still work
   exactly as before; `standardCalls` and the generalized Stedman helpers are
   additive.
-- This project has not been published to a package registry yet. Once it is,
-  this file's `[Unreleased]` heading becomes the first tagged version and a
-  new `[Unreleased]` section starts above it.
+- This `1.0.0` is staged in the repo but **not yet published** to a package
+  registry: `package.json` stays `"private": true` until someone runs the
+  manual `npm publish` step (see CONTRIBUTING.md, "Releasing"). Flipping
+  `private` and publishing is the final, human-run action.

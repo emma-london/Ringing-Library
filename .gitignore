@@ -28,6 +28,11 @@ prototypes/touches
 *.exe
 *.dSYM/
 
+# Generated CCCBR method-library snapshot (ADR-0015) — a build artifact,
+# regenerated via `npm run data:refresh` (or in CI), not vendored into git.
+# The hand-maintained standard-set SEED lives in src/data/ and IS tracked.
+data/method-library/
+
 # Rust / WASM engine build output (ADR-0001)
 target/
 pkg/

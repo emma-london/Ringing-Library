@@ -19,8 +19,41 @@ export interface MethodLibraryEntry {
   /** Raw place notation string (the form accepted by `PlaceNotation.parse`). */
   notation: string;
   classification: MethodClassification;
-  /** Lead head code, e.g. 'b', 'f' (free-form; not interpreted here). */
+  /**
+   * The first lead-head **row** (e.g. `'15738264'`), when known. Always
+   * derivable from `notation` via `Method.leadHead`, so this is an optional
+   * cache — set by the curated `STANDARD_METHODS` and left unset by the bulk
+   * CCCBR snapshot (whose Leadhead column is often a code, not a row — see
+   * `leadHeadCode`).
+   */
   leadHead?: string;
+  /**
+   * The CCCBR/CompLib method id (the `Id` column; CompLib's `m`-prefixed id
+   * without the prefix). Stable and globally unique — the durable key for the
+   * standard-set list and for linking to `complib.org/method/{id}`. Present on
+   * snapshot entries; unset on the hand-authored `STANDARD_METHODS`.
+   */
+  id?: number;
+  /**
+   * The CCCBR **lead-head code** (Framework Appendix C: `a`–`s`, optionally with
+   * a trailing digit, e.g. `'b'`, `'j1'`, `'q6'`), when the method's first lead
+   * head matches one in the plain course of Plain Bob or Grandsire. Absent when
+   * the method has no coded lead head (the CCCBR Leadhead column then holds the
+   * full row, captured in `leadHead`). A structural shorthand for lead order /
+   * coursing — see `docs/adr/ADR-0015`.
+   */
+  leadHeadCode?: string;
+  /**
+   * Method symmetry, using the CCCBR initial letters (`A` asymmetric, `P`
+   * palindromic, `D` double, `R` rotational; combinations occur, e.g. `'DPR'`).
+   * From the snapshot's `Sym` column.
+   */
+  symmetry?: string;
+  /**
+   * `true` for a Little method — the principal hunt bell does not ring in every
+   * place. From the snapshot's `Lit` column.
+   */
+  little?: boolean;
 }
 
 /**
@@ -63,6 +96,16 @@ export class MethodLibrary {
   /** All entries matching a classification. */
   byClass(classification: MethodClassification): MethodLibraryEntry[] {
     return this._entries.filter((e) => e.classification === classification);
+  }
+
+  /**
+   * All entries sharing a CCCBR lead-head code (e.g. `'b'`, `'j1'`). Methods
+   * with the same code share their first lead head, hence lead order / coursing
+   * — a useful grouping for calling structure. Case-sensitive (codes are
+   * lower-case by convention).
+   */
+  byLeadHeadCode(code: string): MethodLibraryEntry[] {
+    return this._entries.filter((e) => e.leadHeadCode === code);
   }
 
   /** Number of entries. */

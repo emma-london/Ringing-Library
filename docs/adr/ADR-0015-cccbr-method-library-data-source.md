@@ -1,9 +1,9 @@
 # ADR-0015: CCCBR method library data source — bundled snapshot vs live fetch
 
-**Status:** Draft
-**Date:** 2026-07-03
+**Status:** Accepted
+**Date:** 2026-07-03 (Draft); Accepted 2026-07-03
 **Deciders:** Emma (project owner)
-**Related:** [ADR-0001](./ADR-0001-cross-platform-compute-architecture.md) (zero-I/O core), `src/method-library.ts`, `src/data/standard-methods.ts`, [ADR-0013](./ADR-0013-phase-4-prework-and-split.md) (Phase 4a scope), [ADR-0008](./ADR-0008-truth-fixture-corpus.md) (bundled-JSON precedent)
+**Related:** [ADR-0001](./ADR-0001-cross-platform-compute-architecture.md) (zero-I/O core), `src/method-library.ts`, `src/data/standard-methods.ts`, [ADR-0013](./ADR-0013-phase-4-prework-and-split.md) (Phase 4a scope), [ADR-0008](./ADR-0008-truth-fixture-corpus.md) (bundled-JSON precedent), [ADR-0016](./ADR-0016-library-to-app-interface-contract.md) (public surface / additive fields)
 
 ## Context
 
@@ -40,37 +40,98 @@ array, so this is purely a question of *where that array's data comes from*
 for the "full library" case, layered alongside — not replacing —
 `STANDARD_METHODS`.
 
-## Open questions (Draft — to resolve during Phase 4a)
+## Resolved decisions (2026-07-03)
 
-- **Refresh mechanism.** A script (same shape as
-  `scripts/generate-example-touches.mjs`) that re-fetches the upstream CCCBR
-  data and regenerates the bundled snapshot — run by hand, or on some
-  schedule matching the ~monthly upstream cadence Emma noted? The refresh
-  script itself needs network access, but only at data-authoring time, never
-  at runtime for an app consuming the library — the same "I/O lives outside
-  the core" boundary ADR-0008's fixture loader already established.
-- **Format.** Raw CCCBR JSON as published, or pre-transformed into
-  `MethodLibraryEntry[]` shape at snapshot time, so the runtime bundle ships
-  no transform logic? Leaning the latter — consistent with how
-  `STANDARD_METHODS` is already shaped, and keeps parsing cost out of the
-  hot path for an app on modest hardware.
-- **Size and loading strategy.** The full library is large (thousands of
-  methods). Does it ship as one JSON asset always loaded whole, or does
-  `MethodLibrary` (or a wrapper around it) get a way to lazy-load by stage or
-  classification, so a phone app isn't forced to parse the entire library
-  upfront just to look up one method? This interacts directly with the
-  "basic phones" performance goal, not just the offline one.
-- **Staleness visibility.** Should the snapshot carry its own
-  fetch/generation date (and maybe a source commit/version reference), so an
-  app — or a person debugging a missing/outdated method — can tell how stale
-  the bundled data is relative to the live CCCBR source?
-- **Relationship to `STANDARD_METHODS`.** Stays a distinct, small,
-  hand-verified subset used by the truth corpus and tests (ADR-0008), or
-  does the full bundled library subsume it? Leaning **keep them distinct** —
-  `STANDARD_METHODS` exists specifically because it's small enough to
-  verify by hand against published blue lines; the full library is bulk data
-  that hasn't had (and won't get) that same per-entry scrutiny. Conflating
-  them would quietly weaken the corpus's evidentiary standard.
+All five open questions were resolved in a working session with Emma. A quick
+review of the live CCCBR data (`methods.cccbr.org.uk`, generated 2026-06-28,
+**over 20,000 methods**) informed each.
+
+- **Source format → Text.** The CCCBR publishes three formats: Text
+  (tab-separated), MicroSiril (legacy ASCII), and XML (richest — adds
+  false-coursehead groups, hunt-bell path, first-performance history). We take
+  the **Text** format. Its columns — `Id, Method, First rung, Refs, FCHs,
+  Stage, Sym, Lit, LLen, Leadhead, Notation` — carry the entire Lean field set
+  we keep (below), so XML's extra richness would buy nothing we bundle, at the
+  cost of more parser code and binary-zip handling. XML remains the upgrade
+  path *only if* we later decide to bundle FCHs.
+- **Fields → the Lean set.** Per method we keep: **id, name, stage,
+  classification, notation, lead-head code (or lead-head row when uncoded),
+  symmetry, little**. Dropped: first-rung date and refs (provenance, no engine
+  use), FCHs (heavy, only meaningful for some methods — deferred), and lead
+  length (derivable from notation). `MethodLibraryEntry` gained `id?`,
+  `leadHeadCode?`, `symmetry?`, `little?` — all optional, so additive and
+  non-breaking under ADR-0016.
+- **Lead-head code → read in and interpreted.** The CCCBR `Leadhead` column is
+  **either a code or a full row**: a code (`a`–`s`, optionally with a trailing
+  digit — Framework Appendix C) when the first lead head matches one in the
+  plain course of Plain Bob or Grandsire, otherwise the full lead-head row.
+  These are stored separately (`leadHeadCode` vs `leadHead`), discriminated by
+  the fact that codes are lower-case letters while rows are bell-name
+  characters of length `stage`. `MethodLibrary.byLeadHeadCode()` groups methods
+  that share a lead head (hence lead order / coursing) — a better structural
+  signal for calling than `classification`.
+- **Size / loading → shard by stage, small local set + downloadable full
+  library.** Transformed to the Lean fields the whole library is a few MB
+  (a few hundred KB gzipped) — small in absolute terms but more than a phone
+  should parse on every launch. So: an always-bundled **standard set** (the
+  local set) plus the **full library sharded one JSON asset per stage**
+  (`data/method-library/full/stage-<n>.json`), the natural access pattern —
+  a band rings one stage at a time and loads only that shard. `MethodLibrary`
+  itself is unchanged (it takes a plain array); which array(s) a platform loads
+  is its choice.
+- **Standard set → an ID-keyed membership list resolved at build time; no
+  hand-typed notation.** The always-bundled local set is defined by
+  `src/data/standard-set-seed.json` — a minimal, hand-maintained list of
+  methods identified by **title + stage** (and optionally a pinned CCCBR `id`).
+  The refresh script **resolves each entry against the fetched snapshot** to
+  populate the lean data, and **fails loudly** if a title/id can't be found or
+  a pinned id's title doesn't match — so place notation is never typed by hand
+  (Emma's explicit requirement: an easy source of error) and stale/mistyped
+  references surface at build time, not silently. Starter membership drafted
+  from Snowdon's *Diagrams* + the Standard 8 Surprise Major (~45 methods), for
+  Emma to trim/extend.
+  - *Note on keying:* the seed holds **`{ id, name, stage }`** — the CCCBR
+    method `id` is the key, `name` + `stage` are human-readable and
+    cross-checked. The resolver looks each id up in the snapshot and fails loud
+    if it's missing or its title doesn't match the seed. (Title+stage matching
+    without an id is still supported as a fallback, for quickly adding a method
+    whose id isn't to hand — the resolver then keys on title+stage — but the
+    committed seed pins ids.) Only these three fields are hand-maintained;
+    notation and all other lean fields come from the snapshot, never typed.
+- **Refresh mechanism → `npm run data:refresh`.** `scripts/refresh-method-library.mjs`
+  (orchestrator) fetches each per-class-per-stage Text file, parses via the pure
+  `scripts/lib/parse-cccbr-text.mjs`, shards by stage, resolves the standard
+  set, and writes a `manifest.json`. Run by hand when a refresh is wanted;
+  network + file I/O live entirely here, never in the runtime core (the
+  ADR-0008 boundary). Jump and Dynamic methods are **excluded** — they use an
+  extended place notation the core doesn't model.
+- **Staleness visibility → a manifest.** `data/method-library/manifest.json`
+  records the upstream "Generated by … on <date>" marker, the snapshot fetch
+  timestamp, per-stage counts, total, and a `schemaVersion` — so an app (or a
+  person chasing a missing method) can see how stale the bundle is.
+- **Relationship to `STANDARD_METHODS` → kept distinct.** `STANDARD_METHODS`
+  stays the small, hand-verified truth-corpus subset (ADR-0008); the snapshot
+  is separate bulk application data. Conflating them would weaken the corpus's
+  per-entry evidentiary standard.
+
+## Options Considered
+
+- **Live fetch of the CCCBR data at runtime** — rejected in Context: reintroduces
+  the network dependency the zero-I/O core (ADR-0001) exists to avoid, for data
+  that changes only ~monthly.
+- **XML source instead of Text** — rejected: the Lean field set is fully present
+  in Text; XML's extra data (FCHs, hunt path, performance history) is exactly
+  what we chose *not* to bundle, so it adds parser complexity and binary-zip
+  handling for no shipped benefit. Kept as the documented upgrade path if FCHs
+  are ever bundled.
+- **One monolithic library asset** — rejected for the phone-performance goal:
+  forces parsing the whole library to look up one method. Per-stage shards match
+  the access pattern.
+- **Seed the standard set by raw notation / by hand-typed data** — rejected:
+  hand-typed place notation is error-prone (Emma's point). Resolving a
+  title/id list against the authoritative snapshot moves correctness to the
+  upstream data and a loud build-time check.
+- **Fold the full library into `STANDARD_METHODS`** — rejected: see above.
 
 ## Consequences
 
@@ -83,8 +144,31 @@ for the "full library" case, layered alongside — not replacing —
 - Adds a small recurring maintenance task (re-running the refresh script
   periodically) that doesn't exist today; someone has to actually do this or
   the bundled data silently goes stale.
-- If the "distinct from `STANDARD_METHODS`" lean is confirmed when 4a starts,
-  `MethodLibrary` may end up constructed from two different arrays for two
+- The "distinct from `STANDARD_METHODS`" lean is confirmed:
+  `MethodLibrary` is now constructed from two different arrays for two
   different purposes (a verified-subset instance for tests/corpus work, a
-  full-library instance for applications) — worth naming clearly in code so
-  the distinction doesn't get muddled later.
+  full-library or standard-set instance for applications) — worth naming
+  clearly in code so the distinction doesn't get muddled later.
+
+## What was built (2026-07-03) / what remains
+
+Built this session:
+
+- `scripts/lib/parse-cccbr-text.mjs` — pure Text-format parser (lead-head
+  code/row discrimination, full-title reconstruction, symmetry, little),
+  covered by `src/tests/parse-cccbr-text.test.ts` (8 tests) against **real
+  CCCBR rows**, including a cross-check that the parsed notation rebuilds the
+  same lead heads as the hand-verified `STANDARD_METHODS` (Grandsire `1253746`,
+  Plain Bob `1352746`).
+- `scripts/refresh-method-library.mjs` + `npm run data:refresh` — the fetch /
+  shard / resolve / manifest orchestrator.
+- `src/data/standard-set-seed.json` — the starter standard-set membership.
+- `MethodLibraryEntry` extended with `id? / leadHeadCode? / symmetry? /
+  little?`; `MethodLibrary.byLeadHeadCode()` added.
+
+Remains (Emma's environment — the sandbox this was built in can't make the
+outbound calls): **run `npm run data:refresh` to vendor the actual snapshot**
+(`data/method-library/full/stage-*.json`, `standard-set.json`, `manifest.json`),
+then review the resolved `standard-set.json` and trim/extend the seed. A thin
+platform loader (`import` the JSON → `new MethodLibrary(...)`) is a one-liner per
+app and stays out of the zero-I/O core.

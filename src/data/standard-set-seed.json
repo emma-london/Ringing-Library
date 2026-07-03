@@ -1,0 +1,57 @@
+{
+  "//": "STANDARD-SET SEED (ADR-0015). The always-bundled 'local' method set — a few dozen methods that cover the overwhelming majority of what is rung. This is the ONLY hand-maintained membership list, and it holds ONLY { id, name, stage }: the CCCBR method id is the key; name + stage are human-readable and cross-checked. Everything else (place notation, lead-head code, symmetry, classification …) is NEVER typed here — the build (scripts/refresh-method-library.mjs) looks each id up in the CCCBR snapshot and populates the lean data store data/method-library/standard-set.json, failing loudly if an id is missing or its title doesn't match. To add a method: find its id at complib.org/method/{id} and add a line. Starter list drafted from Snowdon's Diagrams + the Standard 8 Surprise Major — Emma to trim/extend. Distinct from src/data/standard-methods.ts STANDARD_METHODS (the small hand-verified truth corpus), per ADR-0015.",
+  "methods": [
+    { "id": 10587, "name": "Grandsire Doubles", "stage": 5 },
+    { "id": 10550, "name": "Plain Bob Doubles", "stage": 5 },
+    { "id": 10560, "name": "St Simon's Bob Doubles", "stage": 5 },
+    { "id": 10555, "name": "St Martin's Bob Doubles", "stage": 5 },
+    { "id": 10521, "name": "Reverse Canterbury Pleasure Place Doubles", "stage": 5 },
+    { "id": 27834, "name": "Stedman Doubles", "stage": 5 },
+
+    { "id": 11349, "name": "Plain Bob Minor", "stage": 6 },
+    { "id": 11932, "name": "Little Bob Minor", "stage": 6 },
+    { "id": 11369, "name": "St Clement's College Bob Minor", "stage": 6 },
+    { "id": 11351, "name": "Double Bob Minor", "stage": 6 },
+    { "id": 26082, "name": "Kent Treble Bob Minor", "stage": 6 },
+    { "id": 25915, "name": "Oxford Treble Bob Minor", "stage": 6 },
+    { "id": 14568, "name": "Cambridge Surprise Minor", "stage": 6 },
+    { "id": 14317, "name": "Norwich Surprise Minor", "stage": 6 },
+    { "id": 14563, "name": "Ipswich Surprise Minor", "stage": 6 },
+    { "id": 15335, "name": "London Surprise Minor", "stage": 6 },
+
+    { "id": 12415, "name": "Grandsire Triples", "stage": 7 },
+    { "id": 12399, "name": "Plain Bob Triples", "stage": 7 },
+    { "id": 27985, "name": "Stedman Triples", "stage": 7 },
+    { "id": 27984, "name": "Erin Triples", "stage": 7 },
+
+    { "id": 12834, "name": "Plain Bob Major", "stage": 8 },
+    { "id": 13668, "name": "Little Bob Major", "stage": 8 },
+    { "id": 12470, "name": "Double Norwich Court Bob Major", "stage": 8 },
+    { "id": 26308, "name": "Kent Treble Bob Major", "stage": 8 },
+    { "id": 26281, "name": "Oxford Treble Bob Major", "stage": 8 },
+    { "id": 16694, "name": "Cambridge Surprise Major", "stage": 8 },
+    { "id": 17060, "name": "Yorkshire Surprise Major", "stage": 8 },
+    { "id": 16066, "name": "Superlative Surprise Major", "stage": 8 },
+    { "id": 17150, "name": "Rutland Surprise Major", "stage": 8 },
+    { "id": 19335, "name": "Pudsey Surprise Major", "stage": 8 },
+    { "id": 17167, "name": "Lincolnshire Surprise Major", "stage": 8 },
+    { "id": 20166, "name": "London Surprise Major", "stage": 8 },
+    { "id": 19048, "name": "Bristol Surprise Major", "stage": 8 },
+
+    { "id": 13833, "name": "Grandsire Caters", "stage": 9 },
+    { "id": 13797, "name": "Plain Bob Caters", "stage": 9 },
+    { "id": 28011, "name": "Stedman Caters", "stage": 9 },
+
+    { "id": 13972, "name": "Plain Bob Royal", "stage": 10 },
+    { "id": 26411, "name": "Kent Treble Bob Royal", "stage": 10 },
+    { "id": 21250, "name": "Cambridge Surprise Royal", "stage": 10 },
+    { "id": 21355, "name": "Yorkshire Surprise Royal", "stage": 10 },
+
+    { "id": 14088, "name": "Grandsire Cinques", "stage": 11 },
+    { "id": 28030, "name": "Stedman Cinques", "stage": 11 },
+
+    { "id": 14240, "name": "Plain Bob Maximus", "stage": 12 },
+    { "id": 22683, "name": "Cambridge Surprise Maximus", "stage": 12 },
+    { "id": 22952, "name": "Bristol Surprise Maximus", "stage": 12 }
+  ]
+}

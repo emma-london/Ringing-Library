@@ -1,6 +1,6 @@
 {
   "name": "ringing-lib-ts",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A TypeScript library for change ringing",
   "type": "module",
   "main": "./dist/index.js",
@@ -29,6 +29,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "docs:example-touches": "node scripts/generate-example-touches.mjs",
+    "data:refresh": "node scripts/refresh-method-library.mjs",
     "engine:live-diff": "npm run build && node scripts/engine-live-diff.mjs",
     "app:dev": "vite app",
     "app:build": "vite build app",
