@@ -7,9 +7,14 @@ import { type MethodLibraryEntry } from '../method-library.js';
 /**
  * A curated set of real methods, with place notations verified against the
  * Central Council method library and published blue lines. This is deliberately
- * a small, correct subset — enough to test truth against *real* methods in
- * Phase 3. A platform loader can replace it with the full CCCBR library later
- * (the `MethodLibrary` takes any array), without touching the core.
+ * a small, correct subset — the **truth corpus** the tests and engine use as an
+ * independently hand-verified oracle (imported directly from this module).
+ *
+ * It is an **internal fixture**, not the set an application should use. The
+ * public root re-export of the same name is **deprecated** (ADR-0020) in favour
+ * of the bundled standard set (`STANDARD_SET`, `src/data/standard-set.ts` →
+ * `ringing-lib-ts/data/standard-set`); this array stays here, un-deprecated, so
+ * internal callers use it without tripping the runtime warning.
  */
 export const STANDARD_METHODS: MethodLibraryEntry[] = [
   // Grandsire Triples — plain lead written out explicitly (14 changes).

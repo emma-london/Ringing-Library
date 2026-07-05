@@ -14,6 +14,25 @@ JSON shape is versioned separately from the function API.
 
 ## [Unreleased]
 
+### Added
+- **Bundled standard set as a subpath export.** `import { STANDARD_SET } from
+  'ringing-lib-ts/data/standard-set'` gives the ~45-method always-bundled
+  standard set, ready to drop into `new MethodLibrary(...)`. Exposed via a
+  `package.json` `exports` map (root `.` plus `./data/standard-set`),
+  deliberately off the root entry so it tree-shakes when unused. This closes the
+  gap where an app on the published package could only reach the 9-method
+  hand-verified corpus. (ADR-0019)
+
+### Deprecated
+- **`STANDARD_METHODS` (root export).** It is the small hand-verified *truth
+  corpus*, not the set to build an app's `MethodLibrary` from — use
+  `STANDARD_SET` (above) instead. Still exported and still returns the same
+  array, but now behind a wrapper that logs a one-time runtime deprecation
+  warning; scheduled for removal in **2.0.0** (ADR-0016's one-major-cycle
+  window). The sibling call helpers (`standardCalls`, `grandsireCalls`,
+  `plainBobCalls`, `stedmanCalls`, `stedmanComposition`, and the back-compat
+  aliases) are unaffected. (ADR-0020)
+
 ## [1.0.0] - 2026-07-03
 
 First stable release — marks **Phase 4a completion** (ADR-0016). From here the

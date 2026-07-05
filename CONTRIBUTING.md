@@ -92,17 +92,27 @@ ADR-0006, ADR-0007, and ADR-0009 — rather than bending the general mechanism a
 
 ## Releasing
 
-The package is not yet published (`package.json` is `"private": true` — see ADR-0016).
-Once we're ready to cut the first release:
+The package is cleared to publish to the public npm registry as `ringing-lib-ts`
+(unscoped, MIT). The one-time setup is done: the `LICENSE`, package name, and
+version-1.0.0 criteria (ADR-0016 addenda) are settled, and `package.json`'s
+`"private"` field is `false`. Each release is then a manual, per-release sequence:
 
-1. Confirm the `LICENSE`, package name, and version-1.0.0 criteria decisions (all recorded
-   as ADR-0016 addenda once agreed) are settled.
-2. Update `CHANGELOG.md`: rename `[Unreleased]` to the version being released (with date),
-   and start a fresh empty `[Unreleased]` section above it.
-3. Remove (or flip to `false`) the `"private"` field in `package.json`.
-4. `npm version <patch|minor|major>` (tags the commit), then `git push --follow-tags`.
-5. `npm publish` (requires an authenticated npm account with publish rights — a manual,
-   human step; not something to run unattended).
+1. Update `CHANGELOG.md`: rename `[Unreleased]` to the version being released (with date),
+   and start a fresh empty `[Unreleased]` section above it. Commit this first — the next
+   step requires a clean working tree.
+2. `npm version <patch|minor|major>` on a clean tree — this writes the new version into
+   `package.json` **and** creates the `vX.Y.Z` commit + git tag in one step (so don't
+   hand-edit the version). Pick the bump per SemVer / ADR-0016: additive → `minor`,
+   breaking → `major`, fixes → `patch`.
+3. `git push --follow-tags` — pushes the release commit and its tag together.
+4. Sanity-check the tarball with `npm pack --dry-run`: it should list the whole `dist/`
+   tree, including `dist/data/standard-set.js` and
+   `dist/data/method-library/standard-set.json` (the `./data/standard-set` subpath export,
+   ADR-0019). Because `package.json` now declares an `exports` map, only the `.` and
+   `./data/standard-set` entry points are publicly resolvable — deep `dist/**` imports are
+   not.
+5. `npm publish` (requires an authenticated npm account with publish rights — `npm whoami`
+   to check; `npm login` if needed. A manual, human step; not something to run unattended).
 
 This is a manual process for now, appropriate for a single maintainer. If/when there are
 multiple contributors or a release cadence, revisit as a `Draft` ADR (CI-driven publish,
