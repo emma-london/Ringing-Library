@@ -4,9 +4,13 @@
 // `../src` and Vite bundles it on every build (ADR-0010). There is no separate
 // re-bundle step, so the deployed demo can never drift from the core.
 import * as R from '../src/index.js';
+// The bundled standard set (~45 methods) is a *subpath* export, not part of the
+// root entry (ADR-0019) — an npm consumer imports it as
+// `ringing-lib-ts/data/standard-set`; in-repo we reach the same module directly.
+import { STANDARD_SET } from '../src/data/standard-set.js';
 
-const lib = new R.MethodLibrary(R.STANDARD_METHODS);
-const ENTRIES = R.STANDARD_METHODS;
+const lib = new R.MethodLibrary(STANDARD_SET);
+const ENTRIES = STANDARD_SET;
 
 // Tiny cross-tab bus so the Search tab can hand a found calling to Compose & Prove.
 const bus: { loadCompose?: (entryIdx: number, calling: string) => void } = {};
@@ -156,7 +160,10 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
       if (stedman){
         const calling = callIn.value.trim();
         if (calling.length === 0) throw new Error('Enter a per-six calling (e.g. ".............." or "..bb..bb...bb.")');
-        comp = R.stedmanTriplesComposition(calling);
+        // Pass the selected method so higher Stedman stages (Caters, Cinques …)
+        // compose at their own stage rather than being forced to Triples; the
+        // library scales the six-end calls automatically (Doubles throws — caught).
+        comp = R.stedmanComposition(calling, methodFor(e));
       } else {
         const calls = callsFor(method);
         const calling = normaliseCalling(callIn.value, calls); // length is taken from here

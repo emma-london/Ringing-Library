@@ -8,11 +8,18 @@
 //   npm run data:refresh              # fetch everything, write the snapshot
 //   npm run data:refresh -- --stages 5,6,7,8   # limit to some stages (faster)
 //
-// What it produces under data/method-library/ :
-//   full/stage-<n>.json   the full library, sharded by stage (lazy-loadable)
-//   standard-set.json     the always-bundled 'local' set, resolved from
-//                         src/data/standard-set-seed.json
-//   manifest.json         generation dates, per-stage counts, schema version
+// What it produces:
+//   data/method-library/full/stage-<n>.json   the full library, sharded by
+//                         stage — the *downloadable* library, NOT bundled into
+//                         the npm package (out of `files`); an app fetches the
+//                         shard(s) it needs.
+//   src/data/method-library/standard-set.json  the always-bundled 'local' set,
+//                         resolved from src/data/standard-set-seed.json. Lives
+//                         under src/ (inside tsc's rootDir) so the build emits
+//                         it into dist and it ships via the `./data/standard-set`
+//                         subpath export (ADR-0019).
+//   data/method-library/manifest.json          generation dates, per-stage
+//                         counts, schema version
 //
 // Jump and Dynamic methods are excluded: they use an extended place notation
 // the core does not model.
@@ -26,6 +33,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const OUT_DIR = join(ROOT, 'data', 'method-library');
 const FULL_DIR = join(OUT_DIR, 'full');
+// The standard set is bundled into the shipped library, so it lives under src/
+// (inside tsc's rootDir); the full shards + manifest are separate data/ (ADR-0019).
+const STD_SET_DIR = join(ROOT, 'src', 'data', 'method-library');
 const SEED_PATH = join(ROOT, 'src', 'data', 'standard-set-seed.json');
 
 const SCHEMA_VERSION = 1;
@@ -69,6 +79,7 @@ async function main() {
     : null;
 
   mkdirSync(FULL_DIR, { recursive: true });
+  mkdirSync(STD_SET_DIR, { recursive: true });
 
   const byStage = new Map();          // stage -> entries[]
   let upstreamDate = null;
@@ -137,7 +148,7 @@ async function main() {
     );
   }
   standardSet.sort((a, b) => a.stage - b.stage || a.name.localeCompare(b.name));
-  writeFileSync(join(OUT_DIR, 'standard-set.json'), JSON.stringify(standardSet, null, 0) + '\n');
+  writeFileSync(join(STD_SET_DIR, 'standard-set.json'), JSON.stringify(standardSet, null, 0) + '\n');
 
   const manifest = {
     schemaVersion: SCHEMA_VERSION,

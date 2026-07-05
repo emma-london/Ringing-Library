@@ -168,7 +168,14 @@ Built this session:
 
 Remains (Emma's environment — the sandbox this was built in can't make the
 outbound calls): **run `npm run data:refresh` to vendor the actual snapshot**
-(`data/method-library/full/stage-*.json`, `standard-set.json`, `manifest.json`),
-then review the resolved `standard-set.json` and trim/extend the seed. A thin
-platform loader (`import` the JSON → `new MethodLibrary(...)`) is a one-liner per
-app and stays out of the zero-I/O core.
+(`data/method-library/full/stage-*.json`, `src/data/method-library/standard-set.json`,
+`data/method-library/manifest.json`), then review the resolved `standard-set.json`
+and trim/extend the seed. A thin platform loader (`import` the JSON →
+`new MethodLibrary(...)`) is a one-liner per app and stays out of the zero-I/O core.
+
+**Update (2026-07-05, ADR-0019):** the "thin platform loader" step is now done —
+the standard set ships as the typed subpath export `ringing-lib-ts/data/standard-set`
+(`STANDARD_SET`). As part of that, the resolved `standard-set.json` **moved under
+`src/`** (`src/data/method-library/standard-set.json`) so the build emits and ships
+it; the full shards and `manifest.json` stay under `data/`. The refresh script was
+updated to match. See [ADR-0019](./ADR-0019-standard-set-subpath-export.md).

@@ -5,6 +5,16 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./data/standard-set": {
+      "types": "./dist/data/standard-set.d.ts",
+      "import": "./dist/data/standard-set.js"
+    }
+  },
   "files": [
     "dist"
   ],

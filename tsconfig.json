@@ -12,9 +12,11 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "resolveJsonModule": true
   },
   "include": ["src/**/*"],
   "//exclude": "Underscore-prefixed files are local scratch/experiments (see .gitignore) — never part of the build. Tests are excluded from dist: they're run via vitest straight from src/ (unaffected by this), and one test helper (src/tests/fixtures/load-fixtures.ts) uses Node's fs/path/url, which has no business in the published, zero-I/O, browser-portable core (ADR-0001, ADR-0008).",
-  "exclude": ["node_modules", "dist", "src/**/_*.ts", "src/_*.ts", "src/tests/**"]
+  "//exclude-seed": "standard-set-seed.json is authoring-time input for the refresh script (read via fs), not a runtime import — keep it out of the compiled/shipped output. standard-set.json (the resolved data the wrapper imports) is deliberately NOT excluded, so tsc emits it into dist for the ./data/standard-set subpath export (ADR-0019).",
+  "exclude": ["node_modules", "dist", "src/**/_*.ts", "src/_*.ts", "src/tests/**", "src/data/standard-set-seed.json"]
 }
