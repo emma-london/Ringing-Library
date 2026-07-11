@@ -44,6 +44,8 @@ The load-bearing invariant tying these together:
 
 The trust boundary is therefore the tiny verifier, not the heavy compute. The server, a peer, or a cache is an *untrusted suggestion box*; the client's core is the arbiter.
 
+> **Addendum (2026-07-11, [ADR-0022](./ADR-0022-dynamic-method-library-loader.md)):** "Zero I/O" (point 1) scopes the **domain core and the package's root entry** — they make no file or network calls, on any platform. It does *not* forbid the package from shipping I/O behind a **separate, opt-in subpath**. ADR-0022 adds `ringing-lib-ts/cccbr-methods`, a live-CCCBR method loader that performs network I/O but is never loaded unless an app imports that subpath — so the core's zero-I/O guarantee stands exactly as written. The invariant is about the *core*, not the whole npm package.
+
 ## Options Considered
 
 ### Option A: Pure TypeScript everywhere (heavy jobs to server)

@@ -179,3 +179,19 @@ the standard set ships as the typed subpath export `ringing-lib-ts/data/standard
 `src/`** (`src/data/method-library/standard-set.json`) so the build emits and ships
 it; the full shards and `manifest.json` stay under `data/`. The refresh script was
 updated to match. See [ADR-0019](./ADR-0019-standard-set-subpath-export.md).
+
+**Update (2026-07-11, [ADR-0022](./ADR-0022-dynamic-method-library-loader.md)) —
+partial amendment, not a supersede.** This ADR's core decision — "bundled
+snapshot, *not* a live fetch," and the rejected "Live fetch of the CCCBR data at
+runtime" option — is scoped to the **zero-I/O core** (ADR-0001), and **still
+stands** as the default and the offline guarantee. ADR-0022 adds a narrow,
+**opt-in** exception for power users: a live CCCBR fetch behind a *separate*
+subpath (`ringing-lib-ts/cccbr-methods`), **outside** the core, that never runs
+unless an app imports it and that **degrades back to the bundled `STANDARD_SET`**
+on any failure. So the runtime-fetch prohibition here is best read as scoped to
+the core, with ADR-0022's loader as the documented opt-in alongside it — not as a
+blanket ban this ADR forbids everywhere. ADR-0022 reuses this ADR's endpoints
+(`methods.cccbr.org.uk/text`, per-`(file-class, stage)` files), its lean
+`MethodLibraryEntry` shape, and its pure Text parser (which ADR-0022 promotes
+from `scripts/` into shipped `src/` so the loader and this refresh script share
+one copy).

@@ -15,6 +15,22 @@ JSON shape is versioned separately from the function API.
 ## [Unreleased]
 
 ### Added
+- **Dynamic method-library loader (`ringing-lib-ts/cccbr-methods`).** An opt-in
+  subpath export that fetches the full CCCBR method library live, for power users
+  who need a method beyond the bundled standard set (e.g. a newly-published one).
+  `loadMethods(fileClass, stage)` fetches one CCCBR file — one class at one stage,
+  the no-waste primitive (`loadMethods('Surprise', Stage.MINOR)`); `loadStage(stage)`
+  is a whole-stage convenience that merges every class at that stage. Both return
+  `{ library, provenance }`, where `provenance` tags the data with the upstream
+  "Generated on" marker and the fetch date so an app can surface staleness and
+  offer a refresh. Ships the class×stage availability map (`CCCBR_AVAILABILITY`,
+  `classesForStage`, `stagesForClass`, `isAvailable`) for building pickers, and a
+  typed `CccbrLoadError` on any fetch failure so callers can fall back to
+  `STANDARD_SET`. Fetches direct from CCCBR over HTTPS with no project-hosted
+  mirror; **deliberately off the root entry** so the zero-I/O core is unaffected —
+  this is the package's one opt-in network path. The CCCBR Text parser moved from
+  `scripts/` into shipped `src/` so the loader and the `data:refresh` script share
+  one copy. (ADR-0022, Phase 4aa)
 - **Bundled standard set as a subpath export.** `import { STANDARD_SET } from
   'ringing-lib-ts/data/standard-set'` gives the ~45-method always-bundled
   standard set, ready to drop into `new MethodLibrary(...)`. Exposed via a

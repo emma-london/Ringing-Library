@@ -63,6 +63,7 @@ mode instead of leaving it undefined.
   ADR-0001's layering — the core computes, the app decides UX), but means
   every app built on the library has to implement the same fallback logic
   unless a default is also provided.
+  - *Precedent (2026-07-11, [ADR-0022](./ADR-0022-dynamic-method-library-loader.md)):* the analogous "who owns the fallback" question was settled for the **method-data** side the same way — the `cccbr-methods` loader **provides the mechanism** (it surfaces a typed failure rather than swallowing it) and the **app owns the policy** (degrade to the bundled `STANDARD_SET`, decide what to tell the user). Not binding on the `Executor` (a different surface — search execution, not data loading), but a data point for leaning this seam the same way when 4b resolves it.
 
 ## Consequences
 

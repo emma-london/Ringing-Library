@@ -1,11 +1,17 @@
 // Parser for the CCCBR Methods Library "Text" format (ADR-0015).
 //
-// Turns one per-class-per-stage CCCBR text file into an array of lean
-// MethodLibraryEntry-shaped objects. Pure and I/O-free: it takes the raw file
-// text plus the (class, stage) context that the file's URL already tells us,
-// and returns plain objects. The network fetch, sharding and file writing live
-// in the orchestrator (scripts/refresh-method-library.mjs) — the same
-// "I/O lives outside the core" boundary ADR-0008's fixture loader established.
+// Turns one per-(file-class, stage) CCCBR text file into an array of lean
+// `MethodLibraryEntry` objects. **Pure and I/O-free:** it takes the raw file
+// text plus the (class, stage) context the file's URL already tells us, and
+// returns plain data. The network fetch lives in the loader (`./index.ts`,
+// Phase 4aa / ADR-0022) for runtime use, and in `scripts/refresh-method-library.mjs`
+// for the authoring-time snapshot — both consume this one parser, so there is a
+// single source of truth (the ADR-0016 drift lesson).
+//
+// Promoted from `scripts/lib/parse-cccbr-text.mjs` into shipped `src/` by
+// ADR-0022 so the runtime loader can reuse it; it does no I/O, so it is safe to
+// ship even though the loader that calls it is the package's one opt-in
+// network path (kept off the zero-I/O root entry — ADR-0001).
 //
 // Column layout of the text format (tab-separated; see
 // http://methods.cccbr.org.uk/notes.html):
@@ -16,11 +22,31 @@
 // notation, leadHeadCode (or leadHead row), symmetry, little. First-rung date,
 // refs, FCHs and lead length are deliberately dropped (provenance / derivable).
 
+import { type Stage } from '../bell.js';
+import type { MethodClassification, MethodLibraryEntry } from '../method-library.js';
+
+/**
+ * The eight CCCBR **file classes** — the fetchable unit (one file per
+ * (class, stage)). Deliberately *not* the same as `MethodClassification`: the
+ * `Plain` file yields both `Bob` and `Place` methods, and `Principle` yields
+ * Stedman/Erin/etc. Jump and Dynamic are excluded (extended notation the core
+ * does not model), so they are not listed here.
+ */
+export type CccbrFileClass =
+  | 'Alliance'
+  | 'Delight'
+  | 'Hybrid'
+  | 'Plain'
+  | 'Principle'
+  | 'Surprise'
+  | 'Treble Bob'
+  | 'Treble Place';
+
 /** Bell-name characters, bells 1..33 — must match src/bell.ts BELL_NAMES. */
 const BELL_CHARS = '1234567890ETABCDFGHJKLMNPQRSUVWYZ';
 
 /** Stage number -> the stage word used in full method titles. */
-const STAGE_NAMES = {
+const STAGE_NAMES: Record<number, string> = {
   2: 'Two', 3: 'Singles', 4: 'Minimus', 5: 'Doubles', 6: 'Minor', 7: 'Triples',
   8: 'Major', 9: 'Caters', 10: 'Royal', 11: 'Cinques', 12: 'Maximus',
   13: 'Sextuples', 14: 'Fourteen', 15: 'Septuples', 16: 'Sixteen',
@@ -32,13 +58,16 @@ const STAGE_NAMES = {
  * Plain / Principle / Hybrid contribute no word (Plain sub-classes live in the
  * displayed name already; "Principle"/"Hybrid" are not title words).
  */
-const CLASS_WORD = {
+const CLASS_WORD: Partial<Record<CccbrFileClass, string>> = {
   Surprise: 'Surprise', Delight: 'Delight', 'Treble Bob': 'Treble Bob',
   Alliance: 'Alliance', 'Treble Place': 'Treble Place',
 };
 
-/** Our MethodClassification for a file class (+ name, to split Plain). */
-export function classificationFor(fileClass, displayedName) {
+/** Our `MethodClassification` for a file class (+ name, to split Plain). */
+export function classificationFor(
+  fileClass: CccbrFileClass,
+  displayedName: string,
+): MethodClassification {
   switch (fileClass) {
     case 'Plain':
       return displayedName.trim().endsWith('Place') ? 'Place' : 'Bob';
@@ -50,12 +79,16 @@ export function classificationFor(fileClass, displayedName) {
     case 'Alliance': return 'Alliance';
     case 'Treble Place': return 'Treble Place';
     default:
-      throw new Error(`Unsupported CCCBR file class: ${fileClass}`);
+      throw new Error(`Unsupported CCCBR file class: ${String(fileClass)}`);
   }
 }
 
 /** "Cambridge" + Surprise + 8 -> "Cambridge Surprise Major". */
-export function reconstructTitle(displayedName, fileClass, stage) {
+export function reconstructTitle(
+  displayedName: string,
+  fileClass: CccbrFileClass,
+  stage: Stage,
+): string {
   const stageWord = STAGE_NAMES[stage];
   if (!stageWord) throw new Error(`No stage word for stage ${stage}`);
   const classWord = CLASS_WORD[fileClass] ?? '';
@@ -67,32 +100,46 @@ export function reconstructTitle(displayedName, fileClass, stage) {
  * `['-','34','-','14']` -> `'-34-14'`; `['3','1','7','1']` -> `'3.1.7.1'`.
  * (`join('.')` then collapse the dots that surround a cross change.)
  */
-export function cccbrTokensToNotation(tokens) {
+export function cccbrTokensToNotation(tokens: string[]): string {
   return tokens.join('.').replace(/\.?-\.?/g, '-');
 }
 
 /** Is `s` a full lead-head row (all bell chars, length == stage)? */
-function isLeadHeadRow(s, stage) {
+function isLeadHeadRow(s: string, stage: Stage): boolean {
   return s.length === stage && [...s].every((c) => BELL_CHARS.includes(c));
 }
 
 /** Minimal HTML-entity decode (the text files are served inside HTML). */
-function decodeEntities(s) {
+function decodeEntities(s: string): string {
   return s
     .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&apos;/g, "'");
 }
 
 /**
+ * Pull the upstream "Generated by ... on <date>" marker from a CCCBR file, if
+ * present — the staleness signal that becomes `LibraryProvenance.upstreamGenerated`
+ * (runtime) and the manifest's `upstreamGenerated` (authoring-time).
+ * Anchored on the weekday so it doesn't match the "on" inside "Composition".
+ */
+export function extractUpstreamDate(rawText: string): string | null {
+  const m = rawText.match(/on\s+((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[^\n<]*)/i);
+  return m && m[1] ? m[1].trim() : null;
+}
+
+/**
  * Parse one CCCBR text file into lean entries.
  *
- * @param {string} rawText  the file body (HTML wrapper tolerated)
- * @param {{fileClass: string, stage: number}} ctx
- * @returns {Array<object>} MethodLibraryEntry-shaped plain objects
+ * @param rawText  the file body (HTML wrapper tolerated)
+ * @param ctx      the (file-class, stage) the file's URL identifies
+ * @returns        `MethodLibraryEntry` objects, ready for `new MethodLibrary(...)`
  */
-export function parseTextLibrary(rawText, { fileClass, stage }) {
+export function parseTextLibrary(
+  rawText: string,
+  { fileClass, stage }: { fileClass: CccbrFileClass; stage: Stage },
+): MethodLibraryEntry[] {
   const lines = decodeEntities(rawText).split(/\r?\n/);
-  const entries = [];
+  const entries: MethodLibraryEntry[] = [];
   let seenHeader = false;
 
   for (const rawLine of lines) {
@@ -104,32 +151,33 @@ export function parseTextLibrary(rawText, { fileClass, stage }) {
     if (line.includes('```')) break; // end of the fenced block, if present
     const fields = line.split('\t');
     if (fields.length < 11) continue; // not a data row
-    const id = Number.parseInt(fields[0].trim(), 10);
+    const id = Number.parseInt((fields[0] ?? '').trim(), 10);
     if (!Number.isFinite(id)) continue;
 
-    const displayedName = fields[1].trim();
-    const rowStage = Number.parseInt(fields[5].trim(), 10);
+    const displayedName = (fields[1] ?? '').trim();
+    const rowStage = Number.parseInt((fields[5] ?? '').trim(), 10);
     if (rowStage !== stage) continue; // guard against layout drift
-    const symmetry = fields[6].trim();
-    const little = fields[7].trim().toUpperCase() === 'Y';
-    const leadHeadRaw = fields[9].trim();
+    const symmetry = (fields[6] ?? '').trim();
+    const little = (fields[7] ?? '').trim().toUpperCase() === 'Y';
+    const leadHeadRaw = (fields[9] ?? '').trim();
     const tokens = fields.slice(10).map((t) => t.trim()).filter((t) => t.length > 0);
     if (tokens.length === 0) continue;
 
-    const entry = {
+    const entry: MethodLibraryEntry = {
       id,
       name: reconstructTitle(displayedName, fileClass, stage),
       stage,
       classification: classificationFor(fileClass, displayedName),
       notation: cccbrTokensToNotation(tokens),
+      // Coded lead head (a-s, + optional digit) vs a full row — stored apart.
+      ...(isLeadHeadRow(leadHeadRaw, stage)
+        ? { leadHead: leadHeadRaw }
+        : leadHeadRaw
+          ? { leadHeadCode: leadHeadRaw }
+          : {}),
+      ...(symmetry ? { symmetry } : {}),
+      ...(little ? { little: true } : {}),
     };
-    if (isLeadHeadRow(leadHeadRaw, stage)) {
-      entry.leadHead = leadHeadRaw;           // uncoded: a full row
-    } else if (leadHeadRaw) {
-      entry.leadHeadCode = leadHeadRaw;       // coded: a-s (+ optional digit)
-    }
-    if (symmetry) entry.symmetry = symmetry;
-    if (little) entry.little = true;
     entries.push(entry);
   }
   return entries;

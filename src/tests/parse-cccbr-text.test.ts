@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
-// The parser is authoring-time tooling (plain .mjs), but truth carries the
-// weight in this codebase — so it gets real tests. Fixtures are genuine rows
-// copied from the CCCBR Text library (generated 2026-06-28).
+// The parser now ships in `src/` (ADR-0022) so the runtime cccbr-methods loader
+// and the authoring-time refresh script share one copy. Truth carries the weight
+// in this codebase, so it gets real tests. Fixtures are genuine rows copied from
+// the CCCBR Text library (generated 2026-06-28).
 import {
   parseTextLibrary,
   reconstructTitle,
   cccbrTokensToNotation,
   classificationFor,
-} from '../../scripts/lib/parse-cccbr-text.mjs';
+} from '../cccbr/parse-text.js';
 import { Method } from '../method.js';
 
 /** Build a tab-separated CCCBR text file body from row field-arrays. */

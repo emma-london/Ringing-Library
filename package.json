@@ -13,6 +13,10 @@
     "./data/standard-set": {
       "types": "./dist/data/standard-set.d.ts",
       "import": "./dist/data/standard-set.js"
+    },
+    "./cccbr-methods": {
+      "types": "./dist/cccbr/index.d.ts",
+      "import": "./dist/cccbr/index.js"
     }
   },
   "files": [
@@ -41,7 +45,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "docs:example-touches": "node scripts/generate-example-touches.mjs",
-    "data:refresh": "node scripts/refresh-method-library.mjs",
+    "data:refresh": "npm run build && node scripts/refresh-method-library.mjs",
     "engine:live-diff": "npm run build && node scripts/engine-live-diff.mjs",
     "app:dev": "vite app",
     "app:build": "vite build app",
