@@ -124,11 +124,21 @@ export function grandsireCalls(stage: Stage = 7): CallDefinition[] {
 /**
  * Standard CompLib calls for Plain Bob (bob `14`, single `1234` at the lead
  * end). The replacement occupies the final change of the lead.
+ *
+ * **Plain Bob Doubles exception (ADR-0021).** At Doubles (stage 5) the single
+ * is `123`, *not* `1234`. On five bells `1234` auto-completes to `12345` via
+ * the implicit external place at 5ths (place 4 is made, so lone place 5 above
+ * it must also be made) — that makes *every* bell a place, so no bells cross
+ * and the "single" produces a row identical to the one before it: false. The
+ * standard convention rings the Doubles single as `123` (2nds and 3rds held,
+ * 4ths and 5ths cross). The bob `14` → `145` is unaffected and stays. This
+ * exception is specific to Plain Bob Doubles; it is not a general Doubles rule.
  */
 export function plainBobCalls(stage: Stage = 8): CallDefinition[] {
+  const single = stage === Stage.DOUBLES ? '123' : '1234';
   return [
     { name: 'Bob', symbol: '-', changes: [Change.parse('14', stage)] },
-    { name: 'Single', symbol: 's', changes: [Change.parse('1234', stage)] },
+    { name: 'Single', symbol: 's', changes: [Change.parse(single, stage)] },
   ];
 }
 
@@ -300,6 +310,16 @@ export function standardCalls(method: Method): CallDefinition[] {
 
   if (name.startsWith('stedman')) {
     return stedmanCalls(method.stage); // throws for stage 5 (Doubles) — see above
+  }
+
+  // Plain Bob Doubles exception (ADR-0021): the generic default single `1234`
+  // auto-completes to `12345` on stage 5 (implicit external place at 5ths),
+  // which makes every bell a place — no bells cross, a false repeated row.
+  // Plain Bob Doubles rings the single as `123` instead. Routed through
+  // `plainBobCalls`, which carries the exception (bob `14`/`145` is unchanged).
+  // Deliberately scoped to Plain Bob Doubles, not all Doubles methods.
+  if (name.startsWith('plain bob') && method.stage === Stage.DOUBLES) {
+    return plainBobCalls(method.stage);
   }
 
   return [

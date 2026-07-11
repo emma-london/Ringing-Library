@@ -11,6 +11,7 @@ Grandsire,Triples,True,-s--s-,BSBBSB, 84 changes
 Grandsire,Triples,True,s.s.s-.,SPSPSBP - snap finish, 97 changes, snap finish
 Plain Bob,Major,False,-..S..-.---..,False
 Plain Bob,Major,True,-.....--.....-,WHWH, 224 changes
+Plain Bob,Doubles,True,...s...s...s,Singled extent — a single at the end of each of the three plain courses (leads 4, 8, 12); the whole extent, 120 distinct rows. Relies on the single being 123, not the degenerate 12345., 120 changes
 Stedman,Triples,True,..............,Plain course, 84 changes
 Stedman,Triples,True,..bb..bb...bb.,SLQ - bobs at sixes 3,4,7,8,12,13, 84 changes
 Stedman,Triples,True,s.............s.............,A single at six 1, repeated at six 15, 168 changes

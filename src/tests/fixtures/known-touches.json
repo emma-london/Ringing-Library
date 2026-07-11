@@ -54,6 +54,15 @@
     "notes": "WHWH"
   },
   {
+    "method": "Plain Bob Doubles",
+    "stage": 5,
+    "family": "lead",
+    "calling": "...s...s...s",
+    "expected": { "isTrue": true, "changeCount": 120, "comesToRounds": true },
+    "source": "ADR-0021 (Plain Bob Doubles single = 123)",
+    "notes": "Singled extent — a single at the end of each of the three plain courses (leads 4, 8, 12); the whole extent, 120 distinct rows. Relies on the single being 123, not the degenerate 12345."
+  },
+  {
     "method": "Stedman Triples",
     "stage": 7,
     "family": "stedman-six",

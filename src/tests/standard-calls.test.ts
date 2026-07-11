@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { type Stage, bellToChar } from '../bell.js';
 import { Change } from '../change.js';
+import { Row } from '../row.js';
 import { type CallDefinition } from '../composition.js';
 import { Composition } from '../composition.js';
 import { Touch } from '../touch.js';
@@ -162,6 +163,90 @@ describe('standardCalls — default bob 14 / single 1234', () => {
   it('an unregistered method name falls through to the default, not an error', () => {
     const m = Method.fromPlaceNotation('&-16-16-16,12', 6, 'Some New Method');
     expect(summary(standardCalls(m))).toEqual(summary(plainBobCalls(6)));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Plain Bob Doubles single exception (ADR-0021)
+//
+// The generic/plain-bob default single is `1234`. On five bells that
+// auto-completes to `12345` via the implicit external place at 5ths (place 4
+// is made, so lone place 5 above it must be made too) — every bell makes a
+// place, no bells cross, and the "single" repeats the previous row: false.
+// Plain Bob Doubles rings the single as `123` (4ths & 5ths cross) instead.
+// Scoped to Plain Bob Doubles; the bob `14` -> `145` is unaffected.
+// ---------------------------------------------------------------------------
+
+describe('Plain Bob Doubles single exception (ADR-0021)', () => {
+  // `summary` canonicalises notation (implicit external places), so on five
+  // bells the bob `14` reads back as `145`.
+  it('plainBobCalls(5) single is 123 (not 1234/12345); higher stages keep 1234', () => {
+    expect(summary(plainBobCalls(5))).toEqual([
+      { symbol: '-', notation: '145' },
+      { symbol: 's', notation: '123' },
+    ]);
+    // Unchanged everywhere else: the single is the plain `1234` for that stage,
+    // never the Doubles-only `123`.
+    for (const stage of [6, 7, 8, 10] as Stage[]) {
+      const single = summary(plainBobCalls(stage))[1]!;
+      expect(single.notation).toBe(Change.parse('1234', stage).toString());
+      expect(single.notation).not.toBe('123');
+    }
+  });
+
+  it('standardCalls(Plain Bob Doubles) single is 123, not the degenerate 12345', () => {
+    const m = lib.method('Plain Bob Doubles')!;
+    expect(summary(standardCalls(m))).toEqual([
+      { symbol: '-', notation: '145' },
+      { symbol: 's', notation: '123' },
+    ]);
+  });
+
+  it('the exception is scoped to Plain Bob Doubles, not all Doubles methods', () => {
+    // Some other (unregistered) Doubles method still gets the generic default —
+    // this exception is deliberately Plain-Bob-specific (ADR-0021). Its single
+    // is therefore still the (degenerate) `12345`, a pre-existing limitation
+    // left out of scope, not the Plain-Bob `123`.
+    const other = Method.fromPlaceNotation('&5.1.5.1.5,125', 5, 'St Simons Doubles');
+    const s = summary(standardCalls(other));
+    expect(s[1]!.notation).toBe('12345');
+    expect(s[1]!.notation).not.toBe('123');
+  });
+
+  it('single 123 crosses 4·5 (valid); the degenerate 12345 crosses nothing', () => {
+    const rounds = Row.rounds(5);
+    // The correct single: bells in 4ths & 5ths swap.
+    expect(rounds.apply(Change.parse('123', 5)).toString()).toBe('12354');
+    // The degenerate default on 5 bells: `1234` auto-completes to `12345`,
+    // an identity change — the row is unchanged, which is why it is false.
+    expect(Change.parse('1234', 5).toString()).toBe('12345');
+    expect(rounds.apply(Change.parse('1234', 5)).toString()).toBe('12345');
+  });
+
+  it('a singled 120 of Plain Bob Doubles proves true and is a full extent', () => {
+    const m = lib.method('Plain Bob Doubles')!;
+    const calls = standardCalls(m);
+    // Textbook singles extent: a single at the end of each of the three
+    // plain courses (leads 4, 8, 12 of a 12-lead touch).
+    const t = new Touch(Composition.fromCalling(m, '...s...s...s', { calls }));
+    const proof = t.prove();
+    expect(proof.isTrue).toBe(true);
+    expect(t.comesToRounds()).toBe(true);
+    expect(t.changeCount()).toBe(120);
+    // A true 120 of Doubles is the whole extent: 120 distinct rows.
+    const body = t.toArray().slice(0, -1).map((r) => r.toString());
+    expect(new Set(body).size).toBe(120);
+  });
+
+  it('the same calling with the degenerate 12345 single is false and never comes round', () => {
+    const m = lib.method('Plain Bob Doubles')!;
+    const degenerate: CallDefinition[] = [
+      { name: 'Bob', symbol: '-', changes: [Change.parse('14', 5)] },
+      { name: 'Single', symbol: 's', changes: [Change.parse('1234', 5)] }, // -> 12345
+    ];
+    const t = new Touch(Composition.fromCalling(m, '...s...s...s', { calls: degenerate }));
+    expect(t.comesToRounds()).toBe(false);
+    expect(t.prove().isTrue).toBe(false);
   });
 });
 
