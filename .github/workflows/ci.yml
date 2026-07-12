@@ -1,0 +1,30 @@
+# Continuous checks on every push / PR to main.
+#
+# The `data:check` step is the seed-hash guard (ADR-0023): it fails the build if
+# standard-set-seed.json was edited without regenerating the bundled standard set
+# via `npm run data:refresh`. It is network-free — it does NOT re-fetch the CCCBR
+# library, it only compares the recorded seed hash against the seed.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run data:check
+      - run: npm test
+      - run: npm run build

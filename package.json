@@ -46,6 +46,8 @@
     "test:watch": "vitest",
     "docs:example-touches": "node scripts/generate-example-touches.mjs",
     "data:refresh": "npm run build && node scripts/refresh-method-library.mjs",
+    "data:check": "node scripts/check-standard-set.mjs",
+    "prepublishOnly": "npm run data:check && npm run build",
     "engine:live-diff": "npm run build && node scripts/engine-live-diff.mjs",
     "app:dev": "vite app",
     "app:build": "vite build app",

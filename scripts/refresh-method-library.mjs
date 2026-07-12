@@ -31,6 +31,8 @@ import { dirname, join } from 'node:path';
 // this authoring-time script share one copy. We import the *built* output, so
 // `npm run data:refresh` builds first (see package.json).
 import { parseTextLibrary, extractUpstreamDate } from '../dist/cccbr/parse-text.js';
+// Canonical seed hash, shared with the network-free guard (ADR-0023).
+import { seedHash } from './seed-hash.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -145,6 +147,11 @@ async function main() {
   }
   standardSet.sort((a, b) => a.stage - b.stage || a.name.localeCompare(b.name));
   writeFileSync(join(STD_SET_DIR, 'standard-set.json'), JSON.stringify(standardSet, null, 0) + '\n');
+
+  // Record the seed hash next to the generated set so a cheap, network-free
+  // CI/prepublish guard can catch a seed edited without a re-refresh (ADR-0023).
+  writeFileSync(join(STD_SET_DIR, 'standard-set.seedhash'),
+    seedHash(readFileSync(SEED_PATH, 'utf-8')) + '\n');
 
   const manifest = {
     schemaVersion: SCHEMA_VERSION,
