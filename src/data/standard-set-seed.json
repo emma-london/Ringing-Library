@@ -18,6 +18,8 @@
     { "id": 14317, "name": "Norwich Surprise Minor", "stage": 6 },
     { "id": 14563, "name": "Ipswich Surprise Minor", "stage": 6 },
     { "id": 15335, "name": "London Surprise Minor", "stage": 6 },
+    { "id": 14607, "name": "Beverley Surprise Minor", "stage": 6 },
+    { "id": 14599, "name": "Surfleet Surprise Minor", "stage": 6 },
 
     { "id": 12415, "name": "Grandsire Triples", "stage": 7 },
     { "id": 12399, "name": "Plain Bob Triples", "stage": 7 },
@@ -37,6 +39,8 @@
     { "id": 17167, "name": "Lincolnshire Surprise Major", "stage": 8 },
     { "id": 20166, "name": "London Surprise Major", "stage": 8 },
     { "id": 19048, "name": "Bristol Surprise Major", "stage": 8 },
+    { "id": 19756, "name": "Belfast Surprise Major", "stage": 8 },
+    { "id": 20055, "name": "Glasgow Surprise Major", "stage": 8 },
 
     { "id": 13833, "name": "Grandsire Caters", "stage": 9 },
     { "id": 13797, "name": "Plain Bob Caters", "stage": 9 },
